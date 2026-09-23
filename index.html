@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Night — Kawan Main Werewolf</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <!-- MENU NAVIGASI -->
+    <div class="nav-buttons">
+        <button id="nav-game" class="active" onclick="switchMenu('game-flow')">🎮 Main Game</button>
+        <button id="nav-cards" onclick="switchMenu('list-card')">📚 Katalog Kartu</button>
+    </div>
+
+    <!-- MENU 1: KATALOG KARTU -->
+    <div id="list-card" class="hidden">
+        <h2>Katalog Kartu</h2>
+        <p class="subtitle">Kenali semua peran sebelum malam tiba. Pengetahuan adalah senjata terkuatmu.</p>
+
+        <div class="card-info">
+            <strong>🧑‍🌾 Villager</strong>
+            <p>Warga desa biasa. Tak punya kekuatan khusus — tapi jangan remehkan, justru suaramu yang menentukan siang hari.</p>
+        </div>
+        <div class="card-info">
+            <strong>🐺 Werewolf</strong>
+            <p>Pemburu di kegelapan. Setiap malam, kamu dan kawan seserigala memilih satu mangsa untuk dimakan.</p>
+        </div>
+        <div class="card-info">
+            <strong>👁️ Seer</strong>
+            <p>Peramal yang bisa menerawang satu pemain setiap malam — apakah dia serigala menyamar atau warga jujur.</p>
+        </div>
+        <div class="card-info">
+            <strong>🛡️ Guardian</strong>
+            <p>Penjaga malam. Pilih satu orang untuk kamu lindungi dari gigitan serigala. Kehadiranmu tak terlihat, tapi nyata.</p>
+        </div>
+        <div class="card-info">
+            <strong>🏹 Hunter</strong>
+            <p>Binatang buas juga bisa diburu. Saat kamu mati, tarik pelatuk dan bawa satu orang ikut ke kubur.</p>
+        </div>
+        <div class="card-info">
+            <strong>🐕 Lycan</strong>
+            <p>Setengah serigala yang berpihak pada warga. Aman... sampai Seer melihat sisi gelapmu dan mengira kamu musuh.</p>
+        </div>
+        <div class="card-info">
+            <strong>🤢 Disease</strong>
+            <p>Tubuhmu mematikan. Jika serigala memangsamu, mereka keracunan dan kehilangan nafsu makan malam berikutnya.</p>
+        </div>
+        <div class="card-info">
+            <strong>🩸 Cursed</strong>
+            <p>Terkutuk sejak lahir. Gigitan serigala tak membunuhmu — melainkan mengubahmu menjadi salah satu dari mereka.</p>
+        </div>
+        <div class="card-info">
+            <strong>💪 Strong Villager</strong>
+            <p>Warga bertubuh kekar dengan 2 nyawa. Jika dibunuh Werewolf, kamu bangkit sekali lagi — kesempatan terakhirmu untuk membalas.</p>
+        </div>
+        <div class="card-info">
+            <strong>👶 Orphan</strong>
+            <p>Yatim yang memilih 1 pemain sebagai bapak angkat. Saat bapak angkatmu mati, kamu bangkit dari kematian dan berubah menjadi Werewolf.</p>
+        </div>
+        <div class="card-info">
+            <strong>🩺 Doctor</strong>
+            <p>Dokter desa dengan satu keajaiban: menghidupkan kembali 1 pemain mati. Pakai kesempatan itu sekali saja — dengan bijak.</p>
+        </div>
+    </div>
+
+    <!-- MENU 2: ALUR PERMAINAN -->
+    <div id="game-flow">
+        <!-- Step 1: Setup Jumlah Pemain -->
+        <div id="step-setup">
+            <h2>Siapkan Permainan</h2>
+            <p class="subtitle">Minimal 3, maksimal 8 pemain. Werewolf dijamin ikut bermain — pastikan tidak kurang.</p>
+            <input type="number" id="total-players" min="3" max="8" placeholder="Jumlah pemain (3–8)">
+            <button onclick="startSetup()">🎲 Kocok &amp; Bagikan Peran</button>
+        </div>
+
+        <!-- Step 2: Mengocok Kartu Bergantian -->
+        <div id="step-draw" class="hidden">
+            <h2 id="draw-title">Pemain 1</h2>
+
+            <div id="input-name-zone">
+                <p class="subtitle">Ketik namamu dulu, lalu ambil kartu peran.</p>
+                <input type="text" id="player-name" placeholder="Nama kamu">
+                <button onclick="generateCard()">🃏 Ambil Kartu Peran</button>
+            </div>
+
+            <div id="card-reveal-zone" class="hidden">
+                <div class="warning-text">🚨 Jangan sampai orang lain melihat!</div>
+
+                <div class="card-display" id="card-display">
+                    <div class="card-art" id="card-icon">❓</div>
+                    <div class="card-name" id="role-result">ROLE</div>
+                    <div class="card-desc" id="role-description">Peranmu akan muncul di sini...</div>
+                </div>
+
+                <button onclick="nextPlayer()">✅ Simpan &amp; Oper HP</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Halaman Moderator -->
+        <div id="step-moderator" class="hidden">
+            <h2>Papan Moderator</h2>
+            <div class="warning-text">🔒 Rahasia! Hanya moderator yang boleh melihat halaman ini.</div>
+            <div class="player-list" id="moderator-list"></div>
+            <div id="doctor-status" class="hidden"></div>
+            <div id="orphan-zone" class="hidden"></div>
+            <button class="btn-secondary" onclick="resetGame()">🔄 Mulai Permainan Baru</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roleDetails = {
+        "Villager": { icon: "🧑‍🌾", desc: "Kamu warga biasa tanpa kekuatan khusus. Gunakan insting dan lidahmu untuk mengusir serigala di siang hari!" },
+        "Werewolf": { icon: "🐺", desc: "Kamu serigala! Mangsalah warga setiap malam dan tutupi jejakmu dengan kebohongan yang meyakinkan." },
+        "Seer":     { icon: "👁️", desc: "Kamu peramal. Terawang satu orang setiap malam untuk menguji apakah dia musuh atau kawan." },
+        "Guardian": { icon: "🛡️", desc: "Kamu pelindung. Pilih satu pemain setiap malam untuk dijaga dari gigitan Werewolf." },
+        "Hunter":   { icon: "🏹", desc: "Kamu pemburu! Saat kamu mati, tarik pelatuk dan tembak satu pemain lain pilihanmu." },
+        "Lycan":    { icon: "🐕", desc: "Kamu warga baik dengan darah terkutuk. Jika diperiksa Seer, kamu terbaca sebagai Werewolf!" },
+        "Disease":  { icon: "🤢", desc: "Tubuhmu beracun. Jika kamu dimangsa Werewolf, mereka keracunan dan absen berburu malam berikutnya." },
+        "Cursed":   { icon: "🩸", desc: "Kamu terkutuk. Gigitan Werewolf tak membunuhmu — justru mengubahmu menjadi salah satu dari mereka." },
+        "Strong Villager": { icon: "💪", desc: "Kamu warga bertubuh kekar dengan 2 nyawa! Jika dibunuh Werewolf, kamu bangkit sekali lagi. Gunakan kesempatan itu dengan bijak." },
+        "Orphan":   { icon: "👶", desc: "Kamu yatim piatu. Pilih 1 pemain sebagai bapak angkatmu. Jika dia mati, kamu bangkit dan berubah menjadi Werewolf!" },
+        "Doctor":   { icon: "🩺", desc: "Kamu dokter desa. Kamu punya 1 kesempatan untuk menghidupkan kembali 1 pemain yang sudah mati. Pakai dengan bijak." }
+    };
+
+    let allRoles = Object.keys(roleDetails);
+    let availableRoles = [];
+    let players = [];
+    let totalPlayers = 0;
+    let currentPlayerIdx = 0;
+    let currentRole = "";
+    let werewolfSpotted = false;
+    let hasDoctor = false;
+    let doctorCharges = 0;
+
+    function switchMenu(menu) {
+        const isCards = menu === 'list-card';
+        document.getElementById('list-card').classList.toggle('hidden', !isCards);
+        document.getElementById('game-flow').classList.toggle('hidden', isCards);
+        document.getElementById('nav-cards').classList.toggle('active', isCards);
+        document.getElementById('nav-game').classList.toggle('active', !isCards);
+    }
+
+    function startSetup() {
+        const input = document.getElementById('total-players').value;
+        totalPlayers = parseInt(input);
+
+        if (isNaN(totalPlayers) || totalPlayers < 3 || totalPlayers > 8) {
+            alert("Jumlah pemain harus antara 3 sampai 8!");
+            return;
+        }
+
+        let shuffled = [...allRoles];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        availableRoles = shuffled.slice(0, totalPlayers);
+
+        players = [];
+        currentPlayerIdx = 0;
+        werewolfSpotted = false;
+        hasDoctor = availableRoles.includes("Doctor");
+        doctorCharges = hasDoctor ? 1 : 0;
+
+        document.getElementById('step-setup').classList.add('hidden');
+        document.getElementById('step-draw').classList.remove('hidden');
+        prepareDrawScreen();
+    }
+
+    function prepareDrawScreen() {
+        document.getElementById('draw-title').innerText = `Pemain ke-${currentPlayerIdx + 1} dari ${totalPlayers}`;
+        document.getElementById('player-name').value = "";
+        document.getElementById('input-name-zone').classList.remove('hidden');
+        document.getElementById('card-reveal-zone').classList.add('hidden');
+    }
+
+    function generateCard() {
+        const nameInput = document.getElementById('player-name').value.trim();
+        if (nameInput === "") {
+            alert("Nama tidak boleh kosong!");
+            return;
+        }
+
+        if (currentPlayerIdx === totalPlayers - 1 && !werewolfSpotted) {
+            currentRole = "Werewolf";
+            werewolfSpotted = true;
+
+            const indexInAvailable = availableRoles.indexOf("Werewolf");
+            if (indexInAvailable > -1) {
+                availableRoles.splice(indexInAvailable, 1);
+            }
+        } else {
+            currentRole = availableRoles.pop();
+            if (currentRole === "Werewolf") {
+                werewolfSpotted = true;
+            }
+        }
+
+        document.getElementById('card-icon').innerText = roleDetails[currentRole].icon;
+        document.getElementById('role-result').innerText = currentRole;
+        document.getElementById('role-description').innerText = roleDetails[currentRole].desc;
+
+        document.getElementById('card-display').classList.toggle('ww-mode', currentRole === "Werewolf");
+
+        document.getElementById('input-name-zone').classList.add('hidden');
+        document.getElementById('card-reveal-zone').classList.remove('hidden');
+
+        players.push({
+            name: nameInput,
+            role: currentRole,
+            alive: true,
+            hp: currentRole === "Strong Villager" ? 2 : 1,
+            orphanFather: null,
+            transformedFrom: null
+        });
+    }
+
+    function nextPlayer() {
+        currentPlayerIdx++;
+        if (currentPlayerIdx < totalPlayers) {
+            prepareDrawScreen();
+        } else {
+            showModeratorPage();
+        }
+    }
+
+    function showModeratorPage() {
+        document.getElementById('step-draw').classList.add('hidden');
+        document.getElementById('step-moderator').classList.remove('hidden');
+        renderModeratorList();
+    }
+
+    function renderModeratorList() {
+        const listContainer = document.getElementById('moderator-list');
+        listContainer.innerHTML = "";
+
+        players.forEach((player, index) => {
+            const div = document.createElement('div');
+            div.className = `player-item ${player.alive ? '' : 'dead'}`;
+
+            const icon = roleDetails[player.role].icon;
+            const hpBadge = player.hp > 1
+                ? `<span class="hp-badge">${"❤️".repeat(player.hp)}</span>`
+                : "";
+            const transformedBadge = player.transformedFrom
+                ? `<span class="transform-badge">⬅ eks ${player.transformedFrom}</span>`
+                : "";
+
+            let actionBtn;
+            if (player.alive) {
+                actionBtn = `<button onclick="toggleStatus(${index})">💀 Bunuh</button>`;
+            } else if (hasDoctor && doctorCharges > 0) {
+                actionBtn = `<button onclick="doctorRevive(${index})">🩺 Hidupkan</button>`;
+            } else if (!hasDoctor) {
+                actionBtn = `<button onclick="toggleStatus(${index})">❤️ Hidupkan</button>`;
+            } else {
+                actionBtn = `<span class="dead-label">☠️ Mati</span>`;
+            }
+
+            div.innerHTML = `
+                <div>
+                    <strong>${player.name}</strong><br>
+                    <span class="player-role">${icon} ${player.role}</span>${hpBadge}${transformedBadge}
+                </div>
+                ${actionBtn}
+            `;
+            listContainer.appendChild(div);
+        });
+
+        renderDoctorStatus();
+        renderOrphanZone();
+    }
+
+    function renderDoctorStatus() {
+        const el = document.getElementById('doctor-status');
+        if (!hasDoctor) {
+            el.classList.add('hidden');
+            return;
+        }
+        el.classList.remove('hidden');
+        el.innerHTML = `<div class="warning-text">🩺 Sisa kesempatan Doctor: ${doctorCharges}</div>`;
+    }
+
+    function renderOrphanZone() {
+        const zone = document.getElementById('orphan-zone');
+        const orphanIdx = players.findIndex(p => p.role === "Orphan");
+
+        if (orphanIdx === -1 || players[orphanIdx].orphanFather !== null) {
+            zone.classList.add('hidden');
+            zone.innerHTML = "";
+            return;
+        }
+
+        const options = players
+            .map((p, i) => (i === orphanIdx || !p.alive) ? "" : `<option value="${i}">${p.name}</option>`)
+            .join("");
+
+        zone.classList.remove('hidden');
+        zone.innerHTML = `
+            <div class="card-info">
+                <strong>👶 Pilih Bapak Angkat</strong>
+                <p>Orphan <b>${players[orphanIdx].name}</b> memilih bapak angkat. Jika bapak angkat mati, ia berubah menjadi Werewolf.</p>
+                <select id="orphan-father-select">${options}</select>
+                <button onclick="pickOrphanFather()">Tetapkan Bapak Angkat</button>
+            </div>
+        `;
+    }
+
+    function pickOrphanFather() {
+        const orphanIdx = players.findIndex(p => p.role === "Orphan");
+        if (orphanIdx === -1) return;
+
+        const sel = document.getElementById('orphan-father-select');
+        if (!sel || sel.value === "") {
+            alert("Pilih dulu pemain yang akan jadi bapak angkat!");
+            return;
+        }
+
+        const fatherIdx = parseInt(sel.value);
+        players[orphanIdx].orphanFather = fatherIdx;
+        alert(`👶 ${players[orphanIdx].name} memilih ${players[fatherIdx].name} sebagai bapak angkat.`);
+        renderModeratorList();
+    }
+
+    function checkOrphanTransform(deadIndex) {
+        players.forEach(p => {
+            if (p.role === "Orphan" && p.orphanFather === deadIndex) {
+                p.role = "Werewolf";
+                p.transformedFrom = "Orphan";
+                p.hp = 1;
+                p.alive = true;
+                alert(`👶➡️🐺 ${p.name} kehilangan bapak angkatnya, bangkit dari kematian, dan berubah menjadi WEREWOLF!`);
+            }
+        });
+    }
+
+    function doctorRevive(index) {
+        if (doctorCharges <= 0) return;
+
+        const p = players[index];
+        if (p.alive) return;
+
+        p.alive = true;
+        p.hp = p.role === "Strong Villager" ? 2 : 1;
+        doctorCharges--;
+
+        alert(`🩺 ${p.name} berhasil dihidupkan Doctor!\nSisa kesempatan Doctor: ${doctorCharges}`);
+        renderModeratorList();
+    }
+
+    function toggleStatus(index) {
+        const p = players[index];
+
+        if (p.alive) {
+            if (p.role === "Strong Villager" && p.hp > 1) {
+                p.hp--;
+                alert(`💪 ${p.name} bangkit dari kematian!\nStrong Villager punya 2 nyawa — sisa ${p.hp} nyawa. Bunuh sekali lagi untuk eliminasi.`);
+                renderModeratorList();
+                return;
+            }
+            p.alive = false;
+            checkOrphanTransform(index);
+        } else {
+            p.alive = true;
+            p.hp = p.role === "Strong Villager" ? 2 : 1;
+        }
+
+        renderModeratorList();
+    }
+
+    function resetGame() {
+        if (confirm("Yakin ingin mereset permainan? Semua peran akan diacak ulang.")) {
+            document.getElementById('step-moderator').classList.add('hidden');
+            document.getElementById('step-setup').classList.remove('hidden');
+            document.getElementById('total-players').value = "";
+        }
+    }
+</script>
+
+</body>
+</html>
