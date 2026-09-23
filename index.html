@@ -71,8 +71,8 @@
         <!-- Step 1: Setup Jumlah Pemain -->
         <div id="step-setup">
             <h2>Siapkan Permainan</h2>
-            <p class="subtitle">Minimal 3, maksimal 8 pemain. Werewolf dijamin ikut bermain — pastikan tidak kurang.</p>
-            <input type="number" id="total-players" min="3" max="8" placeholder="Jumlah pemain (3–8)">
+            <p class="subtitle">Minimal 4, maksimal 11 pemain. Werewolf dijamin ikut bermain — pastikan tidak kurang.</p>
+            <input type="number" id="total-players" min="4" max="11" placeholder="Jumlah pemain (4–11)">
             <button onclick="startSetup()">🎲 Kocok &amp; Bagikan Peran</button>
         </div>
 
@@ -148,8 +148,8 @@
         const input = document.getElementById('total-players').value;
         totalPlayers = parseInt(input);
 
-        if (isNaN(totalPlayers) || totalPlayers < 3 || totalPlayers > 8) {
-            alert("Jumlah pemain harus antara 3 sampai 8!");
+        if (isNaN(totalPlayers) || totalPlayers < 4 || totalPlayers > 11) {
+            alert("Jumlah pemain harus antara 4 sampai 11!");
             return;
         }
 
