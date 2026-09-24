@@ -81,9 +81,15 @@
             <h2 id="draw-title">Pemain 1</h2>
 
             <div id="input-name-zone">
-                <p class="subtitle">Ketik namamu dulu, lalu ambil kartu peran.</p>
-                <input type="text" id="player-name" placeholder="Nama kamu">
-                <button onclick="generateCard()">🃏 Ambil Kartu Peran</button>
+                <p class="subtitle">Ketik namamu dulu, lalu kocok dan pilih kartu peran.</p>
+                <input type="text" id="player-name" placeholder="Nama kamu" onkeydown="if(event.key==='Enter') dealCards()">
+                <button onclick="dealCards()">🎴 Kocok &amp; Sebar Kartu</button>
+            </div>
+
+            <div id="card-fan-zone" class="hidden">
+                <p class="subtitle" id="shuffle-label">🎴 Mengocok kartu…</p>
+                <div id="card-fan" class="card-fan"></div>
+                <p class="subtitle pick-hint hidden" id="pick-hint">Pilih satu kartu di atas — itu peranmu!</p>
             </div>
 
             <div id="card-reveal-zone" class="hidden">
@@ -109,6 +115,18 @@
             <button class="btn-secondary" onclick="resetGame()">🔄 Mulai Permainan Baru</button>
         </div>
     </div>
+
+    <!-- MODAL VERIFIKASI -->
+    <div id="modal-backdrop" class="hidden" onclick="if(event.target===this) closeModal(false)">
+        <div class="modal-box">
+            <h3 id="modal-title"></h3>
+            <p id="modal-message"></p>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="modal-cancel" onclick="closeModal(false)">Batal</button>
+                <button id="modal-confirm" onclick="closeModal(true)">OK</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -132,9 +150,11 @@
     let totalPlayers = 0;
     let currentPlayerIdx = 0;
     let currentRole = "";
+    let pendingName = "";
     let werewolfSpotted = false;
     let hasDoctor = false;
     let doctorCharges = 0;
+    let modalCallback = null;
 
     function switchMenu(menu) {
         const isCards = menu === 'list-card';
@@ -144,12 +164,34 @@
         document.getElementById('nav-game').classList.toggle('active', !isCards);
     }
 
+    /* ---------- MODAL ---------- */
+    function openModal(title, message, opts = {}) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-message').innerHTML = message;
+        document.getElementById('modal-confirm').innerText = opts.confirmText || "OK";
+        const cancel = document.getElementById('modal-cancel');
+        if (opts.cancelText) {
+            cancel.style.display = "";
+            cancel.innerText = opts.cancelText;
+        } else {
+            cancel.style.display = "none";
+        }
+        modalCallback = opts.onConfirm || null;
+        document.getElementById('modal-backdrop').classList.remove('hidden');
+    }
+
+    function closeModal(confirmed) {
+        document.getElementById('modal-backdrop').classList.add('hidden');
+        if (confirmed && modalCallback) modalCallback();
+        modalCallback = null;
+    }
+
     function startSetup() {
         const input = document.getElementById('total-players').value;
         totalPlayers = parseInt(input);
 
         if (isNaN(totalPlayers) || totalPlayers < 4 || totalPlayers > 11) {
-            alert("Jumlah pemain harus antara 4 sampai 11!");
+            openModal("⚠️ Jumlah Pemain", "Jumlah pemain harus antara 4 sampai 11!");
             return;
         }
 
@@ -163,6 +205,7 @@
 
         players = [];
         currentPlayerIdx = 0;
+        pendingName = "";
         werewolfSpotted = false;
         hasDoctor = availableRoles.includes("Doctor");
         doctorCharges = hasDoctor ? 1 : 0;
@@ -176,48 +219,126 @@
         document.getElementById('draw-title').innerText = `Pemain ke-${currentPlayerIdx + 1} dari ${totalPlayers}`;
         document.getElementById('player-name').value = "";
         document.getElementById('input-name-zone').classList.remove('hidden');
+        document.getElementById('card-fan-zone').classList.add('hidden');
         document.getElementById('card-reveal-zone').classList.add('hidden');
     }
 
-    function generateCard() {
+    /* ---------- KOCOK & SEBAR KARTU ---------- */
+    function dealCards() {
         const nameInput = document.getElementById('player-name').value.trim();
         if (nameInput === "") {
-            alert("Nama tidak boleh kosong!");
+            openModal("⚠️ Nama Kosong", "Ketik namamu dulu sebelum mengambil kartu!");
             return;
         }
+        pendingName = nameInput;
+
+        document.getElementById('input-name-zone').classList.add('hidden');
+
+        const zone = document.getElementById('card-fan-zone');
+        const fan = document.getElementById('card-fan');
+        const hint = document.getElementById('pick-hint');
+        const label = document.getElementById('shuffle-label');
+
+        zone.classList.remove('hidden');
+        hint.classList.add('hidden');
+        label.innerText = "🎴 Mengocok kartu…";
+        fan.classList.remove('shuffling');
+        fan.innerHTML = "";
+
+        const remaining = availableRoles.length;
+        for (let i = 0; i < remaining; i++) {
+            const c = document.createElement('div');
+            c.className = 'deal-card';
+            c.onclick = () => pickCard(i);
+            c.innerHTML = `
+                <div class="deal-card-inner">
+                    <div class="deal-front"></div>
+                    <div class="deal-back"></div>
+                </div>`;
+            fan.appendChild(c);
+        }
+
+        setTimeout(() => fan.classList.add('shuffling'), 40);
+        setTimeout(spreadCards, 1600);
+    }
+
+    function spreadCards() {
+        const fan = document.getElementById('card-fan');
+        const cards = fan.querySelectorAll('.deal-card');
+        const n = cards.length;
+
+        fan.classList.remove('shuffling');
+
+        const spacing = 30;
+        cards.forEach((c, i) => {
+            const offset = i - (n - 1) / 2;
+            const x = offset * spacing;
+            const y = -Math.abs(offset) * 7;
+            const rot = offset * 5;
+            setTimeout(() => {
+                c.style.setProperty('--x', `${x}px`);
+                c.style.setProperty('--y', `${y}px`);
+                c.style.setProperty('--rot', `${rot}deg`);
+            }, i * 35);
+        });
+
+        document.getElementById('shuffle-label').innerText = "✨ Kartu siap!";
+        document.getElementById('pick-hint').classList.remove('hidden');
+    }
+
+    function setCardFront(card, role) {
+        const front = card.querySelector('.deal-front');
+        front.innerHTML = `<span class="deal-front-icon">${roleDetails[role].icon}</span><span class="deal-front-name">${role}</span>`;
+    }
+
+    function pickCard(i) {
+        if (i >= availableRoles.length) return;
 
         if (currentPlayerIdx === totalPlayers - 1 && !werewolfSpotted) {
+            const wIdx = availableRoles.indexOf("Werewolf");
+            if (wIdx > -1 && wIdx !== i) {
+                [availableRoles[wIdx], availableRoles[i]] = [availableRoles[i], availableRoles[wIdx]];
+            }
             currentRole = "Werewolf";
             werewolfSpotted = true;
-
-            const indexInAvailable = availableRoles.indexOf("Werewolf");
-            if (indexInAvailable > -1) {
-                availableRoles.splice(indexInAvailable, 1);
-            }
         } else {
-            currentRole = availableRoles.pop();
+            currentRole = availableRoles[i];
             if (currentRole === "Werewolf") {
                 werewolfSpotted = true;
             }
         }
-
-        document.getElementById('card-icon').innerText = roleDetails[currentRole].icon;
-        document.getElementById('role-result').innerText = currentRole;
-        document.getElementById('role-description').innerText = roleDetails[currentRole].desc;
-
-        document.getElementById('card-display').classList.toggle('ww-mode', currentRole === "Werewolf");
-
-        document.getElementById('input-name-zone').classList.add('hidden');
-        document.getElementById('card-reveal-zone').classList.remove('hidden');
+        availableRoles.splice(i, 1);
 
         players.push({
-            name: nameInput,
+            name: pendingName,
             role: currentRole,
             alive: true,
             hp: currentRole === "Strong Villager" ? 2 : 1,
             orphanFather: null,
             transformedFrom: null
         });
+
+        const cards = document.querySelectorAll('.deal-card');
+        cards.forEach((c, idx) => {
+            if (idx !== i) {
+                c.classList.add('faded');
+            } else {
+                setCardFront(c, currentRole);
+                c.classList.add('flipped');
+            }
+        });
+
+        setTimeout(showReveal, 900);
+    }
+
+    function showReveal() {
+        document.getElementById('card-icon').innerText = roleDetails[currentRole].icon;
+        document.getElementById('role-result').innerText = currentRole;
+        document.getElementById('role-description').innerText = roleDetails[currentRole].desc;
+        document.getElementById('card-display').classList.toggle('ww-mode', currentRole === "Werewolf");
+
+        document.getElementById('card-fan-zone').classList.add('hidden');
+        document.getElementById('card-reveal-zone').classList.remove('hidden');
     }
 
     function nextPlayer() {
@@ -235,6 +356,7 @@
         renderModeratorList();
     }
 
+    /* ---------- PAPAN MODERATOR ---------- */
     function renderModeratorList() {
         const listContainer = document.getElementById('moderator-list');
         listContainer.innerHTML = "";
@@ -251,6 +373,16 @@
                 ? `<span class="transform-badge">⬅ eks ${player.transformedFrom}</span>`
                 : "";
 
+            const orphanFatherBadge = players.some(p => p.role === "Orphan" && p.orphanFather === index)
+                ? `<span class="orphan-badge">👨‍👶 Bapak Angkat</span>`
+                : "";
+
+            let orphanChildBadge = "";
+            if (player.role === "Orphan" && player.orphanFather !== null) {
+                const fatherName = players[player.orphanFather].name;
+                orphanChildBadge = `<span class="orphan-child-badge">👶 Bapak: ${fatherName}</span>`;
+            }
+
             let actionBtn;
             if (player.alive) {
                 actionBtn = `<button onclick="toggleStatus(${index})">💀 Bunuh</button>`;
@@ -265,7 +397,7 @@
             div.innerHTML = `
                 <div>
                     <strong>${player.name}</strong><br>
-                    <span class="player-role">${icon} ${player.role}</span>${hpBadge}${transformedBadge}
+                    <span class="player-role">${icon} ${player.role}</span>${hpBadge}${transformedBadge}${orphanFatherBadge}${orphanChildBadge}
                 </div>
                 ${actionBtn}
             `;
@@ -317,14 +449,23 @@
 
         const sel = document.getElementById('orphan-father-select');
         if (!sel || sel.value === "") {
-            alert("Pilih dulu pemain yang akan jadi bapak angkat!");
+            openModal("⚠️ Pilih Bapak Angkat", "Pilih dulu pemain yang akan jadi bapak angkat!");
             return;
         }
 
         const fatherIdx = parseInt(sel.value);
-        players[orphanIdx].orphanFather = fatherIdx;
-        alert(`👶 ${players[orphanIdx].name} memilih ${players[fatherIdx].name} sebagai bapak angkat.`);
-        renderModeratorList();
+        openModal(
+            "👶 Tetapkan Bapak Angkat?",
+            `${players[orphanIdx].name} akan menjadikan <b>${players[fatherIdx].name}</b> sebagai bapak angkat.`,
+            {
+                confirmText: "Tetapkan",
+                cancelText: "Batal",
+                onConfirm: () => {
+                    players[orphanIdx].orphanFather = fatherIdx;
+                    renderModeratorList();
+                }
+            }
+        );
     }
 
     function checkOrphanTransform(deadIndex) {
@@ -334,51 +475,98 @@
                 p.transformedFrom = "Orphan";
                 p.hp = 1;
                 p.alive = true;
-                alert(`👶➡️🐺 ${p.name} kehilangan bapak angkatnya, bangkit dari kematian, dan berubah menjadi WEREWOLF!`);
+                openModal("👶➡️🐺 Transformasi!", `${p.name} kehilangan bapak angkatnya, bangkit dari kematian, dan berubah menjadi <b>WEREWOLF!</b>`);
             }
         });
     }
 
     function doctorRevive(index) {
-        if (doctorCharges <= 0) return;
-
         const p = players[index];
-        if (p.alive) return;
+        if (doctorCharges <= 0 || p.alive) return;
 
-        p.alive = true;
-        p.hp = p.role === "Strong Villager" ? 2 : 1;
-        doctorCharges--;
-
-        alert(`🩺 ${p.name} berhasil dihidupkan Doctor!\nSisa kesempatan Doctor: ${doctorCharges}`);
-        renderModeratorList();
+        openModal(
+            "🩺 Hidupkan dengan Doctor?",
+            `${p.name} akan dihidupkan menggunakan 1-satunya kesempatan Doctor.`,
+            {
+                confirmText: "Hidupkan",
+                cancelText: "Batal",
+                onConfirm: () => {
+                    p.alive = true;
+                    p.hp = p.role === "Strong Villager" ? 2 : 1;
+                    doctorCharges--;
+                    renderModeratorList();
+                }
+            }
+        );
     }
 
     function toggleStatus(index) {
         const p = players[index];
 
         if (p.alive) {
-            if (p.role === "Strong Villager" && p.hp > 1) {
-                p.hp--;
-                alert(`💪 ${p.name} bangkit dari kematian!\nStrong Villager punya 2 nyawa — sisa ${p.hp} nyawa. Bunuh sekali lagi untuk eliminasi.`);
-                renderModeratorList();
-                return;
-            }
-            p.alive = false;
-            checkOrphanTransform(index);
+            const strongNote = p.role === "Strong Villager" && p.hp > 1
+                ? ` ${p.name} masih punya ${p.hp} nyawa.`
+                : "";
+            openModal(
+                "💀 Bunuh Pemain?",
+                `<b>${p.name}</b> akan dibunuh.${strongNote}`,
+                {
+                    confirmText: "Bunuh",
+                    cancelText: "Batal",
+                    onConfirm: () => killPlayer(index)
+                }
+            );
         } else {
-            p.alive = true;
-            p.hp = p.role === "Strong Villager" ? 2 : 1;
+            openModal(
+                "❤️ Hidupkan Pemain?",
+                `<b>${p.name}</b> akan dibangkitkan kembali.`,
+                {
+                    confirmText: "Hidupkan",
+                    cancelText: "Batal",
+                    onConfirm: () => revivePlayer(index)
+                }
+            );
+        }
+    }
+
+    function killPlayer(index) {
+        const p = players[index];
+
+        if (p.role === "Strong Villager" && p.hp > 1) {
+            p.hp--;
+            openModal("💪 Bangkit Lagi!", `Strong Villager punya 2 nyawa — <b>${p.name}</b> bangkit! Sisa ${p.hp} nyawa. Bunuh sekali lagi untuk eliminasi.`);
+            renderModeratorList();
+            return;
         }
 
+        p.alive = false;
+        checkOrphanTransform(index);
+        renderModeratorList();
+    }
+
+    function revivePlayer(index) {
+        const p = players[index];
+        p.alive = true;
+        p.hp = p.role === "Strong Villager" ? 2 : 1;
         renderModeratorList();
     }
 
     function resetGame() {
-        if (confirm("Yakin ingin mereset permainan? Semua peran akan diacak ulang.")) {
-            document.getElementById('step-moderator').classList.add('hidden');
-            document.getElementById('step-setup').classList.remove('hidden');
-            document.getElementById('total-players').value = "";
-        }
+        openModal(
+            "🔄 Mulai Ulang?",
+            "Yakin ingin mereset permainan? Semua peran akan diacak ulang.",
+            {
+                confirmText: "Reset",
+                cancelText: "Batal",
+                onConfirm: doResetGame
+            }
+        );
+    }
+
+    function doResetGame() {
+        document.getElementById('step-moderator').classList.add('hidden');
+        document.getElementById('step-setup').classList.remove('hidden');
+        document.getElementById('total-players').value = "";
     }
 </script>
 

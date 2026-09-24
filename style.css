@@ -312,6 +312,30 @@ input:focus {
     line-height: 1.45;
 }
 
+/* ---------- KATALOG ENTRANCE ---------- */
+
+#list-card .card-info {
+    opacity: 0;
+    animation: cardReveal 0.4s ease forwards;
+}
+
+#list-card .card-info:nth-of-type(1) { animation-delay: 0.04s; }
+#list-card .card-info:nth-of-type(2) { animation-delay: 0.08s; }
+#list-card .card-info:nth-of-type(3) { animation-delay: 0.12s; }
+#list-card .card-info:nth-of-type(4) { animation-delay: 0.16s; }
+#list-card .card-info:nth-of-type(5) { animation-delay: 0.20s; }
+#list-card .card-info:nth-of-type(6) { animation-delay: 0.24s; }
+#list-card .card-info:nth-of-type(7) { animation-delay: 0.28s; }
+#list-card .card-info:nth-of-type(8) { animation-delay: 0.32s; }
+#list-card .card-info:nth-of-type(9) { animation-delay: 0.36s; }
+#list-card .card-info:nth-of-type(10) { animation-delay: 0.40s; }
+#list-card .card-info:nth-of-type(11) { animation-delay: 0.44s; }
+
+@keyframes cardReveal {
+    from { opacity: 0; transform: translateY(14px) scale(0.95); }
+    to   { opacity: 1; transform: none; }
+}
+
 /* ---------- PLAYER LIST (MODERATOR) ---------- */
 
 .player-list {
@@ -426,4 +450,214 @@ input:focus {
     color: #777;
     flex-shrink: 0;
     white-space: nowrap;
+}
+
+/* ---------- ORPHAN BADGES ---------- */
+
+.orphan-badge {
+    display: inline-block;
+    margin-left: 6px;
+    background: #10b981;
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    text-decoration: none !important;
+    color: #111 !important;
+}
+
+.orphan-child-badge {
+    display: inline-block;
+    margin-left: 6px;
+    background: #f43f5e;
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    text-decoration: none !important;
+    color: #fff !important;
+}
+
+/* ---------- MODAL ---------- */
+
+#modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 18px;
+}
+
+.modal-box {
+    background: #1a1a2e;
+    border: 3px solid #000;
+    border-radius: 16px;
+    padding: 20px 18px;
+    box-shadow: 8px 8px 0 #000;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    animation: modalPop 0.22s ease;
+}
+
+.modal-box h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+#modal-message {
+    color: #c5c5d5;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-actions button {
+    flex: 1;
+    margin-top: 18px;
+    padding: 12px 10px;
+    font-size: 13px;
+}
+
+@keyframes modalPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- DEALING ANIMATION ---------- */
+
+.card-fan {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    margin: 14px 0 6px;
+}
+
+.card-fan.shuffling {
+    animation: fanShake 0.45s linear infinite;
+}
+
+@keyframes fanShake {
+    0%   { transform: translate(-8px, 3px) rotate(-4deg); }
+    20%  { transform: translate(7px, -4px) rotate(3deg); }
+    40%  { transform: translate(-5px, -6px) rotate(-3deg); }
+    60%  { transform: translate(8px, 4px) rotate(5deg); }
+    80%  { transform: translate(-4px, 3px) rotate(-6deg); }
+    100% { transform: translate(-8px, 3px) rotate(-4deg); }
+}
+
+.pick-hint {
+    color: #fbbf24;
+    font-weight: 900;
+}
+
+.deal-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 56px;
+    height: 84px;
+    --x: 0px;
+    --y: 0px;
+    --rot: 0deg;
+    --lift: 0px;
+    cursor: pointer;
+    perspective: 600px;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y) - var(--lift))) rotate(var(--rot));
+    transition: transform 0.55s cubic-bezier(.2, .8, .25, 1);
+    z-index: 5;
+}
+
+.deal-card:hover:not(.flipped):not(.faded) {
+    --lift: 14px;
+    z-index: 30;
+}
+
+.deal-card.faded {
+    opacity: 0.25;
+    pointer-events: none;
+    cursor: default;
+    filter: grayscale(0.6);
+}
+
+.deal-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(.25, .6, .2, 1);
+}
+
+.deal-card.flipped {
+    pointer-events: none;
+    z-index: 40;
+}
+
+.deal-card.flipped .deal-card-inner {
+    transform: rotateY(180deg);
+}
+
+.deal-front,
+.deal-back {
+    position: absolute;
+    inset: 0;
+    border: 3px solid #000;
+    border-radius: 10px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.deal-front {
+    background: #fbbf24;
+    color: #111;
+    transform: rotateY(180deg);
+}
+
+.deal-front-icon {
+    font-size: 26px;
+}
+
+.deal-front-name {
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 0 2px;
+}
+
+.deal-back {
+    background:
+        radial-gradient(#2f2f4a 1px, transparent 1.2px) 0 0 / 7px 7px,
+        #7c3aed;
+    overflow: hidden;
+}
+
+.deal-back::before {
+    content: "🐺";
+    font-size: 26px;
+    text-shadow: 2px 2px 0 #000;
+    opacity: 0.9;
 }
