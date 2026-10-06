@@ -21,10 +21,6 @@
         <p class="subtitle">Kenali semua peran sebelum malam tiba. Pengetahuan adalah senjata terkuatmu.</p>
 
         <div class="card-info">
-            <strong>🧑‍🌾 Villager</strong>
-            <p>Warga desa biasa. Tak punya kekuatan khusus — tapi jangan remehkan, justru suaramu yang menentukan siang hari.</p>
-        </div>
-        <div class="card-info">
             <strong>🐺 Werewolf</strong>
             <p>Pemburu di kegelapan. Setiap malam, kamu dan kawan seserigala memilih satu mangsa untuk dimakan.</p>
         </div>
@@ -64,6 +60,14 @@
             <strong>🩺 Doctor</strong>
             <p>Dokter desa dengan satu keajaiban: menghidupkan kembali 1 pemain mati. Pakai kesempatan itu sekali saja — dengan bijak.</p>
         </div>
+        <div class="card-info">
+            <strong>👑 King</strong>
+            <p>Raja desa. Saat vote warga berakhir seri, hak prerogatif ada padamu: tentukan satu kandidat terikat untuk dieliminasi.</p>
+        </div>
+        <div class="card-info">
+            <strong>🎭 Troublemaker</strong>
+            <p>Pengacau ulung. Kamu bisa menukar peran dua pemain tanpa mereka sadari — kacaukan semua rencana di desa.</p>
+        </div>
     </div>
 
     <!-- MENU 2: ALUR PERMAINAN -->
@@ -71,7 +75,7 @@
         <!-- Step 1: Setup Jumlah Pemain -->
         <div id="step-setup">
             <h2>Siapkan Permainan</h2>
-            <p class="subtitle">Minimal 4, maksimal 11 pemain. Werewolf dijamin ikut bermain — pastikan tidak kurang.</p>
+            <p class="subtitle">Minimal 4, maksimal 11 pemain. Minimal 2 role aktif malam (Seer, Guardian, Doctor, Troublemaker) dijamin ikut bermain.</p>
             <input type="number" id="total-players" min="4" max="11" placeholder="Jumlah pemain (4–11)">
             <button onclick="startSetup()">🎲 Kocok &amp; Bagikan Peran</button>
         </div>
@@ -109,9 +113,11 @@
         <div id="step-moderator" class="hidden">
             <h2>Papan Moderator</h2>
             <div class="warning-text">🔒 Rahasia! Hanya moderator yang boleh melihat halaman ini.</div>
+            <div id="orphan-zone" class="hidden"></div>
             <div class="player-list" id="moderator-list"></div>
             <div id="doctor-status" class="hidden"></div>
-            <div id="orphan-zone" class="hidden"></div>
+            <div id="king-zone" class="hidden"></div>
+            <div id="troublemaker-zone" class="hidden"></div>
             <button class="btn-secondary" onclick="resetGame()">🔄 Mulai Permainan Baru</button>
         </div>
     </div>
@@ -131,7 +137,6 @@
 
 <script>
     const roleDetails = {
-        "Villager": { icon: "🧑‍🌾", desc: "Kamu warga biasa tanpa kekuatan khusus. Gunakan insting dan lidahmu untuk mengusir serigala di siang hari!" },
         "Werewolf": { icon: "🐺", desc: "Kamu serigala! Mangsalah warga setiap malam dan tutupi jejakmu dengan kebohongan yang meyakinkan." },
         "Seer":     { icon: "👁️", desc: "Kamu peramal. Terawang satu orang setiap malam untuk menguji apakah dia musuh atau kawan." },
         "Guardian": { icon: "🛡️", desc: "Kamu pelindung. Pilih satu pemain setiap malam untuk dijaga dari gigitan Werewolf." },
@@ -141,10 +146,14 @@
         "Cursed":   { icon: "🩸", desc: "Kamu terkutuk. Gigitan Werewolf tak membunuhmu — justru mengubahmu menjadi salah satu dari mereka." },
         "Strong Villager": { icon: "💪", desc: "Kamu warga bertubuh kekar dengan 2 nyawa! Jika dibunuh Werewolf, kamu bangkit sekali lagi. Gunakan kesempatan itu dengan bijak." },
         "Orphan":   { icon: "👶", desc: "Kamu yatim piatu. Pilih 1 pemain sebagai bapak angkatmu. Jika dia mati, kamu bangkit dan berubah menjadi Werewolf!" },
-        "Doctor":   { icon: "🩺", desc: "Kamu dokter desa. Kamu punya 1 kesempatan untuk menghidupkan kembali 1 pemain yang sudah mati. Pakai dengan bijak." }
+        "Doctor":   { icon: "🩺", desc: "Kamu dokter desa. Kamu punya 1 kesempatan untuk menghidupkan kembali 1 pemain yang sudah mati. Pakai dengan bijak." },
+        "King":     { icon: "👑", desc: "Kamu raja desa. Saat vote warga seri, suaramu yang menentukan: pilih satu kandidat terikat untuk dieliminasi." },
+        "Troublemaker": { icon: "🎭", desc: "Kamu pengacau. Kamu bisa menukar peran dua pemain tanpa mereka sadari. Pakai kekuatanmu dengan bijak!" }
     };
 
     let allRoles = Object.keys(roleDetails);
+    const activeRoles = ["Seer", "Guardian", "Doctor", "Troublemaker"];
+    const MIN_ACTIVE_ROLES = 2;
     let availableRoles = [];
     let players = [];
     let totalPlayers = 0;
@@ -202,6 +211,7 @@
         }
 
         availableRoles = shuffled.slice(0, totalPlayers);
+        enforceActiveRolesRule();
 
         players = [];
         currentPlayerIdx = 0;
@@ -213,6 +223,28 @@
         document.getElementById('step-setup').classList.add('hidden');
         document.getElementById('step-draw').classList.remove('hidden');
         prepareDrawScreen();
+    }
+
+    function enforceActiveRolesRule() {
+        const isActive = r => activeRoles.includes(r);
+        let missing = MIN_ACTIVE_ROLES - availableRoles.filter(isActive).length;
+
+        while (missing > 0) {
+            const outside = allRoles.filter(r => isActive(r) && !availableRoles.includes(r));
+            if (outside.length === 0) break;
+
+            const outIdx = availableRoles.findIndex(r => !isActive(r) && r !== "Werewolf");
+            if (outIdx === -1) break;
+
+            const inIdx = Math.floor(Math.random() * outside.length);
+            availableRoles[outIdx] = outside[inIdx];
+            missing--;
+        }
+
+        for (let i = availableRoles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableRoles[i], availableRoles[j]] = [availableRoles[j], availableRoles[i]];
+        }
     }
 
     function prepareDrawScreen() {
@@ -354,6 +386,7 @@
         document.getElementById('step-draw').classList.add('hidden');
         document.getElementById('step-moderator').classList.remove('hidden');
         renderModeratorList();
+        if (orphanFatherPending()) warnOrphanFather();
     }
 
     /* ---------- PAPAN MODERATOR ---------- */
@@ -388,8 +421,6 @@
                 actionBtn = `<button onclick="toggleStatus(${index})">💀 Bunuh</button>`;
             } else if (hasDoctor && doctorCharges > 0) {
                 actionBtn = `<button onclick="doctorRevive(${index})">🩺 Hidupkan</button>`;
-            } else if (!hasDoctor) {
-                actionBtn = `<button onclick="toggleStatus(${index})">❤️ Hidupkan</button>`;
             } else {
                 actionBtn = `<span class="dead-label">☠️ Mati</span>`;
             }
@@ -406,6 +437,8 @@
 
         renderDoctorStatus();
         renderOrphanZone();
+        renderKingZone();
+        renderTroublemakerZone();
     }
 
     function renderDoctorStatus() {
@@ -434,13 +467,37 @@
 
         zone.classList.remove('hidden');
         zone.innerHTML = `
-            <div class="card-info">
-                <strong>👶 Pilih Bapak Angkat</strong>
+            <div class="card-info zone-card">
+                <strong>👶 Wajib: Pilih Bapak Angkat</strong>
                 <p>Orphan <b>${players[orphanIdx].name}</b> memilih bapak angkat. Jika bapak angkat mati, ia berubah menjadi Werewolf.</p>
-                <select id="orphan-father-select">${options}</select>
+                <select id="orphan-father-select"><option value="">— Pilih pemain —</option>${options}</select>
                 <button onclick="pickOrphanFather()">Tetapkan Bapak Angkat</button>
             </div>
         `;
+    }
+
+    function orphanFatherPending() {
+        return players.some(p => p.role === "Orphan" && p.orphanFather === null);
+    }
+
+    function focusOrphanZone() {
+        const zone = document.getElementById('orphan-zone');
+        if (!zone) return;
+        zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        zone.classList.remove('zone-highlight');
+        void zone.offsetWidth;
+        zone.classList.add('zone-highlight');
+        setTimeout(() => zone.classList.remove('zone-highlight'), 4000);
+    }
+
+    function warnOrphanFather() {
+        const orphan = players.find(p => p.role === "Orphan" && p.orphanFather === null);
+        if (!orphan) return;
+        openModal(
+            "👶 Wajib Pilih Bapak Angkat",
+            `<b>${orphan.name}</b> (Orphan) belum memilih bapak angkat! Pilih dulu sebelum melanjutkan permainan atau membunuh pemain.`,
+            { confirmText: "Pilih Sekarang", onConfirm: focusOrphanZone }
+        );
     }
 
     function pickOrphanFather() {
@@ -462,6 +519,122 @@
                 cancelText: "Batal",
                 onConfirm: () => {
                     players[orphanIdx].orphanFather = fatherIdx;
+                    document.getElementById('orphan-zone').classList.remove('zone-highlight');
+                    renderModeratorList();
+                }
+            }
+        );
+    }
+
+    function renderKingZone() {
+        const zone = document.getElementById('king-zone');
+        const kingIdx = players.findIndex(p => p.role === "King" && p.alive);
+
+        if (kingIdx === -1) {
+            zone.classList.add('hidden');
+            zone.innerHTML = "";
+            return;
+        }
+
+        const options = players
+            .map((p, i) => (i === kingIdx || !p.alive) ? "" : `<option value="${i}">${p.name} (${roleDetails[p.role].icon} ${p.role})</option>`)
+            .join("");
+
+        zone.classList.remove('hidden');
+        zone.innerHTML = `
+            <div class="card-info zone-card">
+                <strong>👑 Keputusan Raja Saat Vote Seri</strong>
+                <p>Jika vote warga seri, Raja <b>${players[kingIdx].name}</b> menentukan pilihan akhir. Pilih kandidat yang akan dieliminasi.</p>
+                <select id="king-choice-select"><option value="">— Pilih kandidat —</option>${options}</select>
+                <button onclick="kingDecide()">👑 Tentukan Pilihan</button>
+            </div>
+        `;
+    }
+
+    function kingDecide() {
+        const kingIdx = players.findIndex(p => p.role === "King" && p.alive);
+        if (kingIdx === -1) return;
+
+        if (orphanFatherPending()) {
+            warnOrphanFather();
+            return;
+        }
+
+        const sel = document.getElementById('king-choice-select');
+        if (!sel || sel.value === "") {
+            openModal("⚠️ Pilih Kandidat", "Pilih dulu kandidat yang akan ditentukan oleh Raja!");
+            return;
+        }
+
+        const targetIdx = parseInt(sel.value);
+        openModal(
+            "👑 Keputusan Raja?",
+            `Vote warga <b>SERI</b>. Raja <b>${players[kingIdx].name}</b> memutuskan <b>${players[targetIdx].name}</b> untuk dieliminasi.`,
+            {
+                confirmText: "Eliminasi",
+                cancelText: "Batal",
+                onConfirm: () => killPlayer(targetIdx)
+            }
+        );
+    }
+
+    function renderTroublemakerZone() {
+        const zone = document.getElementById('troublemaker-zone');
+        const tmIdx = players.findIndex(p => p.role === "Troublemaker" && p.alive);
+
+        if (tmIdx === -1) {
+            zone.classList.add('hidden');
+            zone.innerHTML = "";
+            return;
+        }
+
+        const options = players
+            .map((p, i) => (i === tmIdx || !p.alive) ? "" : `<option value="${i}">${p.name} (${roleDetails[p.role].icon} ${p.role})</option>`)
+            .join("");
+
+        zone.classList.remove('hidden');
+        zone.innerHTML = `
+            <div class="card-info zone-card">
+                <strong>🎭 Tukar Peran Pemain</strong>
+                <p>Troublemaker <b>${players[tmIdx].name}</b> dapat menukar peran dua pemain tanpa mereka sadari.</p>
+                <select id="tm-select-a"><option value="">— Pemain pertama —</option>${options}</select>
+                <select id="tm-select-b"><option value="">— Pemain kedua —</option>${options}</select>
+                <button onclick="troublemakerSwap()">🔁 Tukar Peran</button>
+            </div>
+        `;
+    }
+
+    function troublemakerSwap() {
+        const tmIdx = players.findIndex(p => p.role === "Troublemaker" && p.alive);
+        if (tmIdx === -1) return;
+
+        const selA = document.getElementById('tm-select-a');
+        const selB = document.getElementById('tm-select-b');
+        if (!selA || !selB || selA.value === "" || selB.value === "") {
+            openModal("⚠️ Pilih Dua Pemain", "Pilih dulu dua pemain yang perannya akan ditukar!");
+            return;
+        }
+
+        const a = parseInt(selA.value);
+        const b = parseInt(selB.value);
+        if (a === b) {
+            openModal("⚠️ Pemain Sama", "Pilih dua pemain yang berbeda untuk ditukar perannya!");
+            return;
+        }
+
+        const pA = players[a];
+        const pB = players[b];
+        openModal(
+            "🔁 Tukar Peran?",
+            `Peran <b>${pA.name}</b> (${roleDetails[pA.role].icon} ${pA.role}) dan <b>${pB.name}</b> (${roleDetails[pB.role].icon} ${pB.role}) akan ditukar.`,
+            {
+                confirmText: "Tukar",
+                cancelText: "Batal",
+                onConfirm: () => {
+                    [pA.role, pB.role] = [pB.role, pA.role];
+                    pA.hp = pA.role === "Strong Villager" ? 2 : 1;
+                    pB.hp = pB.role === "Strong Villager" ? 2 : 1;
+                    openModal("🎭 Peran Ditukar!", `${pA.name} kini menjadi <b>${roleDetails[pA.role].icon} ${pA.role}</b> dan ${pB.name} menjadi <b>${roleDetails[pB.role].icon} ${pB.role}</b>.`);
                     renderModeratorList();
                 }
             }
@@ -504,6 +677,10 @@
         const p = players[index];
 
         if (p.alive) {
+            if (orphanFatherPending()) {
+                warnOrphanFather();
+                return;
+            }
             const strongNote = p.role === "Strong Villager" && p.hp > 1
                 ? ` ${p.name} masih punya ${p.hp} nyawa.`
                 : "";
@@ -517,6 +694,10 @@
                 }
             );
         } else {
+            if (!hasDoctor || doctorCharges <= 0) {
+                openModal("🚫 Tidak Bisa Hidupkan", "Hanya <b>Doctor</b> yang bisa menghidupkan pemain mati, dan kesempatannya sudah habis atau tidak ada Doctor di permainan ini.");
+                return;
+            }
             openModal(
                 "❤️ Hidupkan Pemain?",
                 `<b>${p.name}</b> akan dibangkitkan kembali.`,
@@ -545,9 +726,12 @@
     }
 
     function revivePlayer(index) {
+        if (!hasDoctor || doctorCharges <= 0) return;
         const p = players[index];
+        if (p.alive) return;
         p.alive = true;
         p.hp = p.role === "Strong Villager" ? 2 : 1;
+        doctorCharges--;
         renderModeratorList();
     }
 
