@@ -34,6 +34,7 @@ export function GameProvider({ children }) {
 
   const pickCard = useCallback((index) => dispatch({ type: 'PICK', payload: { index } }), []);
   const nextPlayer = useCallback(() => dispatch({ type: 'NEXT_PLAYER' }), []);
+  const startModerator = useCallback(() => dispatch({ type: 'START_MODERATOR' }), []);
   const killPlayer = useCallback((index) => dispatch({ type: 'KILL', payload: { index } }), []);
   const reviveWithDoctor = useCallback(
     (index) => dispatch({ type: 'DOCTOR_REVIVE', payload: { index } }),
@@ -65,6 +66,7 @@ export function GameProvider({ children }) {
       dealCards,
       pickCard,
       nextPlayer,
+      startModerator,
       killPlayer,
       reviveWithDoctor,
       setOrphanFather,
@@ -78,6 +80,7 @@ export function GameProvider({ children }) {
       dealCards,
       pickCard,
       nextPlayer,
+      startModerator,
       killPlayer,
       reviveWithDoctor,
       setOrphanFather,

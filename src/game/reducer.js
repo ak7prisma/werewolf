@@ -97,6 +97,10 @@ export function gameReducer(state, action) {
           drawStep: DRAW_STEP.NAME,
         };
       }
+      return { ...state, currentRole: null, drawStep: DRAW_STEP.HANDOVER };
+    }
+
+    case 'START_MODERATOR': {
       return { ...state, phase: GAME_PHASE.MODERATOR };
     }
 

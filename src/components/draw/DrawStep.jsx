@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { TriangleAlert } from 'lucide-react';
+import { Smartphone, TriangleAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -14,7 +14,7 @@ import { DRAW_STEP } from '@/game/constants';
 const transition = { duration: 0.25 };
 
 export function DrawStep() {
-  const { state, dealCards, pickCard, nextPlayer } = useGame();
+  const { state, dealCards, pickCard, nextPlayer, startModerator } = useGame();
   const { alert } = useModal();
 
   const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
@@ -85,6 +85,26 @@ export function DrawStep() {
           <RoleRevealCard role={state.currentRole} />
           <Button block className="mt-1" onClick={nextPlayer}>
             Simpan &amp; Lanjut
+          </Button>
+        </motion.section>
+      ) : null}
+
+      {state.drawStep === DRAW_STEP.HANDOVER ? (
+        <motion.section
+          key="handover"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={transition}
+          className="flex flex-col items-center"
+        >
+          <SectionTitle>Semua Peran Dibagikan</SectionTitle>
+          <Alert variant="info" className="mb-4 inline-flex items-center gap-2 text-center">
+            <Smartphone className="size-4" />
+            Serahkan HP ke moderator sekarang. Jangan biarkan pemain lain melihat peran mereka!
+          </Alert>
+          <Button block className="mt-1" onClick={startModerator}>
+            Lanjut ke Papan Moderator
           </Button>
         </motion.section>
       ) : null}

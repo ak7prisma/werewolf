@@ -13,6 +13,7 @@ export const DRAW_STEP = {
   NAME: 'name',
   FAN: 'fan',
   REVEAL: 'reveal',
+  HANDOVER: 'handover',
 };
 
 export const GAME_PHASE = {
