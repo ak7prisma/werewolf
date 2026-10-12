@@ -1,0 +1,144 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #0f0f17;
+  --foreground: #e8e8f2;
+
+  --card: #1a1a2e;
+  --card-foreground: #e8e8f2;
+
+  --popover: #1a1a2e;
+  --popover-foreground: #e8e8f2;
+
+  --primary: #e63946;
+  --primary-foreground: #ffffff;
+
+  --secondary: #24243a;
+  --secondary-foreground: #e8e8f2;
+
+  --muted: #24243a;
+  --muted-foreground: #9a9ab0;
+
+  --accent: #fbbf24;
+  --accent-foreground: #111111;
+
+  --destructive: #e63946;
+  --destructive-foreground: #ffffff;
+
+  --success: #34d399;
+  --success-foreground: #111111;
+
+  --info: #7c3aed;
+  --info-foreground: #ffffff;
+
+  --border: #000000;
+  --input: #12121e;
+  --ring: #7c3aed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  --animate-float: float 3s ease-in-out infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: radial-gradient(#26263a 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply uppercase tracking-wide;
+  }
+}
+
+/* ---------- NEUBRUTALIST HELPERS ---------- */
+@utility neo-border {
+  border: 3px solid #000;
+}
+
+@utility neo-border-2 {
+  border: 2px solid #000;
+}
+
+@utility neo-shadow {
+  box-shadow: 4px 4px 0 #000;
+}
+
+@utility neo-shadow-sm {
+  box-shadow: 3px 3px 0 #000;
+}
+
+@utility neo-shadow-lg {
+  box-shadow: 8px 8px 0 #000;
+}
+
+@utility neo-shadow-accent {
+  box-shadow: 7px 7px 0 var(--accent);
+}
+
+@utility neo-shadow-primary {
+  box-shadow: 7px 7px 0 var(--primary);
+}
+
+@utility text-stroke {
+  text-shadow: 2px 2px 0 #000;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+}
