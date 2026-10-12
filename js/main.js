@@ -32,3 +32,18 @@ window.killPlayer = killPlayer;
 window.revivePlayer = revivePlayer;
 window.resetGame = resetGame;
 window.doResetGame = doResetGame;
+
+document.getElementById('nav-game')?.addEventListener('click', () => switchMenu('game-flow'));
+document.getElementById('nav-cards')?.addEventListener('click', () => switchMenu('list-card'));
+document.getElementById('btn-start-setup')?.addEventListener('click', startSetup);
+document.getElementById('btn-deal-cards')?.addEventListener('click', dealCards);
+document.getElementById('btn-next-player')?.addEventListener('click', nextPlayer);
+document.getElementById('btn-reset-game')?.addEventListener('click', resetGame);
+document.getElementById('modal-backdrop')?.addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-backdrop')) closeModal(false);
+});
+document.getElementById('modal-cancel')?.addEventListener('click', () => closeModal(false));
+document.getElementById('modal-confirm')?.addEventListener('click', () => closeModal(true));
+document.getElementById('player-name')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') dealCards();
+});
