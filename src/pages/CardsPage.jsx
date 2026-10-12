@@ -3,8 +3,14 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { SectionTitle, Subtitle } from '@/components/SectionTitle';
 import { CATALOG_ROLES } from '@/data/roles';
+import { cn } from '@/lib/utils';
 
-const CARD_BACKGROUNDS = ['#1f3d34', '#262638', '#3a1f2c'];
+const CATEGORY_STYLES = {
+  evil: { bg: '#3a1519', badge: 'bg-primary text-primary-foreground' },
+  active: { bg: '#123a26', badge: 'bg-success text-success-foreground' },
+  variable: { bg: '#3a2b12', badge: 'bg-accent text-accent-foreground' },
+  normal: { bg: '#262638', badge: 'bg-secondary text-secondary-foreground' },
+};
 
 export function CardsPage() {
   return (
@@ -15,6 +21,7 @@ export function CardsPage() {
       <div className="grid w-full grid-cols-2 gap-3">
         {CATALOG_ROLES.map((role, index) => {
           const Icon = role.icon;
+          const style = CATEGORY_STYLES[role.category] ?? CATEGORY_STYLES.normal;
           return (
             <motion.div
               key={role.name}
@@ -26,12 +33,17 @@ export function CardsPage() {
             >
               <Card
                 className="flex h-full flex-col items-center rounded-2xl px-3 py-4 text-center neo-shadow"
-                style={{ backgroundColor: CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length] }}
+                style={{ backgroundColor: style.bg }}
               >
-                <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground neo-border-2">
+                <span
+                  className={cn(
+                    'grid size-16 shrink-0 place-items-center rounded-xl neo-border-2',
+                    style.badge,
+                  )}
+                >
                   <Icon className="size-9" />
                 </span>
-                <strong className="mt-3 text-sm font-black tracking-wide text-accent uppercase">
+                <strong className="mt-3 text-sm font-black tracking-wide text-foreground uppercase">
                   {role.name}
                 </strong>
                 <p className="mt-1.5 text-[11.5px] leading-snug font-semibold text-[#c5c5d5]">

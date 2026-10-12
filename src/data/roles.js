@@ -15,8 +15,13 @@ import {
 
 /**
  * Master catalogue of every role available in Wolf Night.
- * `icon` is a lucide-react / react-icons component, `short` is a terse label and
- * `description` is revealed to the player when they draw the card.
+ * `icon` is a react-icons component, `short` is a terse label, `description` is
+ * revealed to the player when they draw the card and `category` groups roles for
+ * colour-coding in the catalogue:
+ *   - evil     : tim Werewolf
+ *   - active   : warga dengan skill aktif di malam hari
+ *   - variable : bisa berubah menjadi baik atau jahat
+ *   - normal   : warga tanpa skill aktif
  */
 export const ROLES = {
   Werewolf: {
@@ -26,6 +31,7 @@ export const ROLES = {
     description:
       'Kamu serigala! Mangsalah warga setiap malam dan tutupi jejakmu dengan kebohongan yang meyakinkan.',
     team: 'werewolf',
+    category: 'evil',
   },
   Seer: {
     name: 'Seer',
@@ -34,7 +40,7 @@ export const ROLES = {
     description:
       'Kamu peramal. Terawang satu orang setiap malam untuk menguji apakah dia musuh atau kawan.',
     team: 'village',
-    active: true,
+    category: 'active',
   },
   Guardian: {
     name: 'Guardian',
@@ -43,7 +49,7 @@ export const ROLES = {
     description:
       'Kamu pelindung. Pilih satu pemain setiap malam untuk dijaga dari gigitan Werewolf.',
     team: 'village',
-    active: true,
+    category: 'active',
   },
   Hunter: {
     name: 'Hunter',
@@ -52,6 +58,7 @@ export const ROLES = {
     description:
       'Kamu pemburu! Saat kamu mati, tarik pelatuk dan tembak satu pemain lain pilihanmu.',
     team: 'village',
+    category: 'normal',
   },
   Lycan: {
     name: 'Lycan',
@@ -60,6 +67,7 @@ export const ROLES = {
     description:
       'Kamu warga baik dengan darah terkutuk. Jika diperiksa Seer, kamu terbaca sebagai Werewolf!',
     team: 'village',
+    category: 'normal',
   },
   Disease: {
     name: 'Disease',
@@ -68,6 +76,7 @@ export const ROLES = {
     description:
       'Tubuhmu beracun. Jika kamu dimangsa Werewolf, mereka keracunan dan absen berburu malam berikutnya.',
     team: 'village',
+    category: 'normal',
   },
   Cursed: {
     name: 'Cursed',
@@ -76,6 +85,7 @@ export const ROLES = {
     description:
       'Kamu terkutuk. Gigitan Werewolf tak membunuhmu - justru mengubahmu menjadi salah satu dari mereka.',
     team: 'village',
+    category: 'variable',
   },
   'Strong Villager': {
     name: 'Strong Villager',
@@ -84,6 +94,7 @@ export const ROLES = {
     description:
       'Kamu warga bertubuh kekar dengan 2 nyawa! Jika dibunuh Werewolf, kamu bangkit sekali lagi. Gunakan kesempatan itu dengan bijak.',
     team: 'village',
+    category: 'normal',
   },
   Orphan: {
     name: 'Orphan',
@@ -92,6 +103,7 @@ export const ROLES = {
     description:
       'Kamu yatim piatu. Pilih 1 pemain sebagai bapak angkatmu. Jika dia mati, kamu bangkit dan berubah menjadi Werewolf!',
     team: 'village',
+    category: 'variable',
   },
   Doctor: {
     name: 'Doctor',
@@ -100,7 +112,7 @@ export const ROLES = {
     description:
       'Kamu dokter desa. Kamu punya 1 kesempatan untuk menghidupkan kembali 1 pemain yang sudah mati. Pakai dengan bijak.',
     team: 'village',
-    active: true,
+    category: 'active',
   },
   King: {
     name: 'King',
@@ -109,6 +121,7 @@ export const ROLES = {
     description:
       'Kamu raja desa. Saat vote warga seri, hak prerogatif ada padamu: tentukan satu kandidat terikat untuk dieliminasi.',
     team: 'village',
+    category: 'normal',
   },
   Doppelganger: {
     name: 'Doppelganger',
@@ -116,6 +129,7 @@ export const ROLES = {
     short: 'Penyamar.',
     description: 'Penyamar. Pilih pemain yang sudah mati dan ambil perannya.',
     team: 'village',
+    category: 'variable',
   },
 };
 
