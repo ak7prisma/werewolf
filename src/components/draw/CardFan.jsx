@@ -1,27 +1,34 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 
 import { DealCard } from './DealCard';
 
-const SHUFFLE_DURATION = 2000;
+const SHUFFLE_DURATION = 2600;
+const RIFLE_INTERVAL = 320;
 const REVEAL_DELAY = 900;
 const SPACING = 30;
-const SPIN_TURNS = 2; // full revolutions of the deck while shuffling
 
-export function CardFan({ roles, resolveRole, onPick }) {
-  const [shuffling, setShuffling] = useState(true);
+export function CardFan({ roles, resolveRole, onPick, shuffle = false }) {
+  const [shuffling, setShuffling] = useState(shuffle);
+  const [split, setSplit] = useState(false);
   const [spread, setSpread] = useState(false);
   const [picked, setPicked] = useState(null);
-  const [label, setLabel] = useState('Mengocok kartu…');
+  const [label, setLabel] = useState(shuffle ? 'Mengocok kartu…' : 'Kartu siap!');
 
   useEffect(() => {
+    const delay = shuffle ? SHUFFLE_DURATION : 150;
     const timer = setTimeout(() => {
       setShuffling(false);
       setSpread(true);
-      setLabel('Kartu siap!');
-    }, SHUFFLE_DURATION);
+      if (shuffle) setLabel('Kartu siap!');
+    }, delay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [shuffle]);
+
+  useEffect(() => {
+    if (!shuffling) return undefined;
+    const id = setInterval(() => setSplit((value) => !value), RIFLE_INTERVAL);
+    return () => clearInterval(id);
+  }, [shuffling]);
 
   const count = roles.length;
 
@@ -35,26 +42,18 @@ export function CardFan({ roles, resolveRole, onPick }) {
   return (
     <>
       <p className="mb-3.5 text-sm font-semibold text-muted-foreground">{label}</p>
-      <motion.div
-        className="relative mx-0 my-3.5 h-[180px] w-full"
-        style={{ transformOrigin: 'center center' }}
-        animate={
-          shuffling
-            ? { rotate: [0, 360 * SPIN_TURNS], scale: [1, 1.06, 1] }
-            : { rotate: 0, scale: 1 }
-        }
-        transition={
-          shuffling
-            ? {
-                rotate: { duration: SHUFFLE_DURATION / 1000, ease: 'easeInOut' },
-                scale: { duration: 0.8, ease: 'easeInOut', repeat: Infinity },
-              }
-            : { duration: 0 }
-        }
-      >
+      <div className="relative mx-0 my-3.5 h-[180px] w-full">
         {roles.map((role, index) => {
           const offset = index - (count - 1) / 2;
           const isPicked = picked === index;
+
+          // Riffle shuffle: odd/even cards form two piles that split apart and
+          // fall back together, staggered by index so it looks like a real shuffle.
+          const side = index % 2 === 0 ? -1 : 1;
+          const pileX = split ? side * 36 : 0;
+          const pileY = split ? -12 - (index % 3) * 3 : 0;
+          const pileRotate = split ? side * 16 : 0;
+
           return (
             <DealCard
               key={`${role}-${index}`}
@@ -66,7 +65,11 @@ export function CardFan({ roles, resolveRole, onPick }) {
               stackX={offset * 1.6}
               stackY={offset * -1.1}
               stackRotate={offset * 1.2}
-              delay={index * 0.035}
+              shuffling={shuffling}
+              pileX={pileX}
+              pileY={pileY}
+              pileRotate={pileRotate}
+              delay={index * 0.03}
               flipped={isPicked}
               faded={picked !== null && !isPicked}
               disabled={picked !== null || shuffling}
@@ -75,7 +78,7 @@ export function CardFan({ roles, resolveRole, onPick }) {
             />
           );
         })}
-      </motion.div>
+      </div>
       <p
         className={
           spread && picked === null

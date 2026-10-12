@@ -13,6 +13,10 @@ export function DealCard({
   stackX = 0,
   stackY = 0,
   stackRotate = 0,
+  shuffling = false,
+  pileX = 0,
+  pileY = 0,
+  pileRotate = 0,
   delay,
   flipped,
   faded,
@@ -22,6 +26,22 @@ export function DealCard({
 }) {
   const roleData = role ? getRole(role) : null;
   const RoleIcon = roleData?.icon;
+
+  const target = flipped
+    ? { x: 0, y: 0, rotate: 0, scale: 1.18 }
+    : spread
+      ? { x, y, rotate, scale: 1 }
+      : shuffling
+        ? { x: pileX, y: pileY, rotate: pileRotate, scale: 1 }
+        : { x: stackX, y: stackY, rotate: stackRotate, scale: 1 };
+
+  const transition = flipped
+    ? { duration: 0.4, ease: 'easeOut' }
+    : spread
+      ? { delay, duration: 0.55, ease: [0.2, 0.8, 0.25, 1] }
+      : shuffling
+        ? { delay, duration: 0.32, ease: 'easeInOut' }
+        : { duration: 0.4, ease: 'easeOut' };
 
   return (
     <motion.button
@@ -36,18 +56,11 @@ export function DealCard({
       )}
       initial={false}
       animate={{
-        x: flipped ? 0 : spread ? x : stackX,
-        y: flipped ? 0 : spread ? y : stackY,
-        rotate: flipped ? 0 : spread ? rotate : stackRotate,
-        scale: flipped ? 1.18 : 1,
+        ...target,
         opacity: faded ? 0.25 : 1,
         filter: faded ? 'grayscale(0.6)' : 'grayscale(0)',
       }}
-      transition={
-        spread && !flipped
-          ? { delay, duration: 0.55, ease: [0.2, 0.8, 0.25, 1] }
-          : { duration: 0.4, ease: 'easeOut' }
-      }
+      transition={transition}
       whileHover={!disabled && !flipped ? { y: y - 14 } : undefined}
     >
       <motion.div

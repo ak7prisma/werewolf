@@ -60,7 +60,12 @@ export function DrawStep() {
           <SectionTitle>
             Pemain ke-{state.currentPlayerIdx + 1} dari {state.totalPlayers}
           </SectionTitle>
-          <CardFan roles={state.availableRoles} resolveRole={resolveRole} onPick={pickCard} />
+          <CardFan
+            roles={state.availableRoles}
+            resolveRole={resolveRole}
+            onPick={pickCard}
+            shuffle={state.currentPlayerIdx === 0}
+          />
         </motion.section>
       ) : null}
 

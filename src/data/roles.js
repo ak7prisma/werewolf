@@ -1,11 +1,11 @@
 import {
-  GiAllSeeingEye,
   GiBabyFace,
   GiBiceps,
   GiBlood,
   GiCrown,
   GiCrosshair,
   GiDominoMask,
+  GiEyeball,
   GiHound,
   GiMedicalPack,
   GiShield,
@@ -29,7 +29,7 @@ export const ROLES = {
   },
   Seer: {
     name: 'Seer',
-    icon: GiAllSeeingEye,
+    icon: GiEyeball,
     short: 'Peramal.',
     description:
       'Kamu peramal. Terawang satu orang setiap malam untuk menguji apakah dia musuh atau kawan.',
