@@ -93,12 +93,11 @@ export function gameReducer(state, action) {
         return {
           ...state,
           currentPlayerIdx: nextIdx,
-          currentRole: null,
           pendingName: '',
           drawStep: DRAW_STEP.NAME,
         };
       }
-      return { ...state, phase: GAME_PHASE.MODERATOR, currentRole: null };
+      return { ...state, phase: GAME_PHASE.MODERATOR };
     }
 
     case 'KILL': {

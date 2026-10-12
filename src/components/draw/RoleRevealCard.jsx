@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 export function RoleRevealCard({ role }) {
   const roleData = getRole(role);
+  if (!roleData) return null;
   const Icon = roleData.icon;
   const isWerewolf = role === 'Werewolf';
 
@@ -23,7 +24,6 @@ export function RoleRevealCard({ role }) {
           'mx-auto mb-3 size-16 animate-float',
           isWerewolf ? 'text-primary' : 'text-accent',
         )}
-        strokeWidth={2.2}
       />
       <div
         className={cn(

@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 
 import { DealCard } from './DealCard';
 
-const SHUFFLE_DURATION = 1600;
+const SHUFFLE_DURATION = 2000;
 const REVEAL_DELAY = 900;
 const SPACING = 30;
+const SPIN_TURNS = 2; // full revolutions of the deck while shuffling
 
 export function CardFan({ roles, resolveRole, onPick }) {
   const [shuffling, setShuffling] = useState(true);
@@ -36,12 +37,20 @@ export function CardFan({ roles, resolveRole, onPick }) {
       <p className="mb-3.5 text-sm font-semibold text-muted-foreground">{label}</p>
       <motion.div
         className="relative mx-0 my-3.5 h-[180px] w-full"
+        style={{ transformOrigin: 'center center' }}
         animate={
           shuffling
-            ? { x: [-8, 7, -5, 8, -4, -8], y: [3, -4, -6, 4, 3, 3], rotate: [-4, 3, -3, 5, -6, -4] }
-            : { x: 0, y: 0, rotate: 0 }
+            ? { rotate: [0, 360 * SPIN_TURNS], scale: [1, 1.06, 1] }
+            : { rotate: 0, scale: 1 }
         }
-        transition={shuffling ? { duration: 0.45, repeat: Infinity, ease: 'linear' } : { duration: 0.3 }}
+        transition={
+          shuffling
+            ? {
+                rotate: { duration: SHUFFLE_DURATION / 1000, ease: 'easeInOut' },
+                scale: { duration: 0.8, ease: 'easeInOut', repeat: Infinity },
+              }
+            : { duration: 0 }
+        }
       >
         {roles.map((role, index) => {
           const offset = index - (count - 1) / 2;
@@ -54,6 +63,9 @@ export function CardFan({ roles, resolveRole, onPick }) {
               x={offset * SPACING}
               y={-Math.abs(offset) * 7}
               rotate={offset * 5}
+              stackX={offset * 1.6}
+              stackY={offset * -1.1}
+              stackRotate={offset * 1.2}
               delay={index * 0.035}
               flipped={isPicked}
               faded={picked !== null && !isPicked}

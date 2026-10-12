@@ -1,27 +1,27 @@
 import {
-  Baby,
-  Copy,
-  Crown,
-  Crosshair,
-  Eye,
-  FlaskConical,
-  Ghost,
-  HeartPulse,
-  Moon,
-  PawPrint,
-  Shield,
-  Stethoscope,
-} from 'lucide-react';
+  GiAllSeeingEye,
+  GiBabyFace,
+  GiBiceps,
+  GiBlood,
+  GiCrown,
+  GiCrosshair,
+  GiDominoMask,
+  GiHound,
+  GiMedicalPack,
+  GiShield,
+  GiVomiting,
+  GiWerewolf,
+} from 'react-icons/gi';
 
 /**
  * Master catalogue of every role available in Wolf Night.
- * `icon` is a lucide-react component, `short` is used in the catalogue page and
+ * `icon` is a lucide-react / react-icons component, `short` is a terse label and
  * `description` is revealed to the player when they draw the card.
  */
 export const ROLES = {
   Werewolf: {
     name: 'Werewolf',
-    icon: PawPrint,
+    icon: GiWerewolf,
     short: 'Serigala.',
     description:
       'Kamu serigala! Mangsalah warga setiap malam dan tutupi jejakmu dengan kebohongan yang meyakinkan.',
@@ -29,7 +29,7 @@ export const ROLES = {
   },
   Seer: {
     name: 'Seer',
-    icon: Eye,
+    icon: GiAllSeeingEye,
     short: 'Peramal.',
     description:
       'Kamu peramal. Terawang satu orang setiap malam untuk menguji apakah dia musuh atau kawan.',
@@ -38,7 +38,7 @@ export const ROLES = {
   },
   Guardian: {
     name: 'Guardian',
-    icon: Shield,
+    icon: GiShield,
     short: 'Pelindung.',
     description:
       'Kamu pelindung. Pilih satu pemain setiap malam untuk dijaga dari gigitan Werewolf.',
@@ -47,7 +47,7 @@ export const ROLES = {
   },
   Hunter: {
     name: 'Hunter',
-    icon: Crosshair,
+    icon: GiCrosshair,
     short: 'Pemburu.',
     description:
       'Kamu pemburu! Saat kamu mati, tarik pelatuk dan tembak satu pemain lain pilihanmu.',
@@ -55,7 +55,7 @@ export const ROLES = {
   },
   Lycan: {
     name: 'Lycan',
-    icon: Moon,
+    icon: GiHound,
     short: 'Lycan.',
     description:
       'Kamu warga baik dengan darah terkutuk. Jika diperiksa Seer, kamu terbaca sebagai Werewolf!',
@@ -63,7 +63,7 @@ export const ROLES = {
   },
   Disease: {
     name: 'Disease',
-    icon: FlaskConical,
+    icon: GiVomiting,
     short: 'Beracun.',
     description:
       'Tubuhmu beracun. Jika kamu dimangsa Werewolf, mereka keracunan dan absen berburu malam berikutnya.',
@@ -71,7 +71,7 @@ export const ROLES = {
   },
   Cursed: {
     name: 'Cursed',
-    icon: Ghost,
+    icon: GiBlood,
     short: 'Terkutuk.',
     description:
       'Kamu terkutuk. Gigitan Werewolf tak membunuhmu - justru mengubahmu menjadi salah satu dari mereka.',
@@ -79,7 +79,7 @@ export const ROLES = {
   },
   'Strong Villager': {
     name: 'Strong Villager',
-    icon: HeartPulse,
+    icon: GiBiceps,
     short: '2 nyawa.',
     description:
       'Kamu warga bertubuh kekar dengan 2 nyawa! Jika dibunuh Werewolf, kamu bangkit sekali lagi. Gunakan kesempatan itu dengan bijak.',
@@ -87,7 +87,7 @@ export const ROLES = {
   },
   Orphan: {
     name: 'Orphan',
-    icon: Baby,
+    icon: GiBabyFace,
     short: 'Yatim piatu.',
     description:
       'Kamu yatim piatu. Pilih 1 pemain sebagai bapak angkatmu. Jika dia mati, kamu bangkit dan berubah menjadi Werewolf!',
@@ -95,7 +95,7 @@ export const ROLES = {
   },
   Doctor: {
     name: 'Doctor',
-    icon: Stethoscope,
+    icon: GiMedicalPack,
     short: 'Dokter.',
     description:
       'Kamu dokter desa. Kamu punya 1 kesempatan untuk menghidupkan kembali 1 pemain yang sudah mati. Pakai dengan bijak.',
@@ -104,7 +104,7 @@ export const ROLES = {
   },
   King: {
     name: 'King',
-    icon: Crown,
+    icon: GiCrown,
     short: 'Raja.',
     description:
       'Kamu raja desa. Saat vote warga seri, hak prerogatif ada padamu: tentukan satu kandidat terikat untuk dieliminasi.',
@@ -112,7 +112,7 @@ export const ROLES = {
   },
   Doppelganger: {
     name: 'Doppelganger',
-    icon: Copy,
+    icon: GiDominoMask,
     short: 'Penyamar.',
     description: 'Penyamar. Pilih pemain yang sudah mati dan ambil perannya.',
     team: 'village',

@@ -4,7 +4,22 @@ import { motion } from 'framer-motion';
 import { getRole } from '@/data/roles';
 import { cn } from '@/lib/utils';
 
-export function DealCard({ role, spread, x, y, rotate, delay, flipped, faded, disabled, zIndex, onSelect }) {
+export function DealCard({
+  role,
+  spread,
+  x,
+  y,
+  rotate,
+  stackX = 0,
+  stackY = 0,
+  stackRotate = 0,
+  delay,
+  flipped,
+  faded,
+  disabled,
+  zIndex,
+  onSelect,
+}) {
   const roleData = role ? getRole(role) : null;
   const RoleIcon = roleData?.icon;
 
@@ -21,9 +36,9 @@ export function DealCard({ role, spread, x, y, rotate, delay, flipped, faded, di
       )}
       initial={false}
       animate={{
-        x: flipped ? 0 : x,
-        y: flipped ? 0 : spread ? y : 0,
-        rotate: flipped ? 0 : spread ? rotate : 0,
+        x: flipped ? 0 : spread ? x : stackX,
+        y: flipped ? 0 : spread ? y : stackY,
+        rotate: flipped ? 0 : spread ? rotate : stackRotate,
         scale: flipped ? 1.18 : 1,
         opacity: faded ? 0.25 : 1,
         filter: faded ? 'grayscale(0.6)' : 'grayscale(0)',

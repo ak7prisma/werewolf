@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Shuffle, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
-import { SectionTitle, Subtitle } from '@/components/SectionTitle';
+import { SectionTitle } from '@/components/SectionTitle';
+import { NameStep } from './NameStep';
 import { CardFan } from './CardFan';
 import { RoleRevealCard } from './RoleRevealCard';
 import { useGame } from '@/game/GameContext';
@@ -17,7 +16,6 @@ const transition = { duration: 0.25 };
 export function DrawStep() {
   const { state, dealCards, pickCard, nextPlayer } = useGame();
   const { alert } = useModal();
-  const [name, setName] = useState('');
 
   const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
 
@@ -26,7 +24,7 @@ export function DrawStep() {
     return state.availableRoles[index];
   }
 
-  async function handleDeal() {
+  async function handleDeal(name) {
     const result = dealCards(name);
     if (!result.ok) {
       await alert({ title: 'Nama Kosong', description: result.error, tone: 'warning' });
@@ -42,24 +40,12 @@ export function DrawStep() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -16 }}
           transition={transition}
-          className="flex flex-col items-center"
         >
-          <SectionTitle>
-            Pemain ke-{state.currentPlayerIdx + 1} dari {state.totalPlayers}
-          </SectionTitle>
-          <Subtitle>Ketik namamu dulu, lalu kocok dan pilih kartu peran.</Subtitle>
-          <Input
-            type="text"
-            placeholder="Nama kamu"
-            value={name}
-            autoFocus
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => event.key === 'Enter' && handleDeal()}
+          <NameStep
+            playerNumber={state.currentPlayerIdx + 1}
+            totalPlayers={state.totalPlayers}
+            onDeal={handleDeal}
           />
-          <Button block className="mt-4" onClick={handleDeal}>
-            <Shuffle />
-            Kocok &amp; Sebar Kartu
-          </Button>
         </motion.section>
       ) : null}
 
@@ -74,11 +60,7 @@ export function DrawStep() {
           <SectionTitle>
             Pemain ke-{state.currentPlayerIdx + 1} dari {state.totalPlayers}
           </SectionTitle>
-          <CardFan
-            roles={state.availableRoles}
-            resolveRole={resolveRole}
-            onPick={pickCard}
-          />
+          <CardFan roles={state.availableRoles} resolveRole={resolveRole} onPick={pickCard} />
         </motion.section>
       ) : null}
 

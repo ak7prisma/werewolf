@@ -12,31 +12,31 @@ export function CardsPage() {
       <SectionTitle>Katalog Kartu</SectionTitle>
       <Subtitle>Kenali semua peran sebelum malam tiba.</Subtitle>
 
-      <div className="flex w-full flex-col gap-2.5">
+      <div className="grid w-full grid-cols-2 gap-3">
         {CATALOG_ROLES.map((role, index) => {
           const Icon = role.icon;
           return (
             <motion.div
               key={role.name}
-              initial={{ opacity: 0, y: 14, scale: 0.95 }}
+              initial={{ opacity: 0, y: 16, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: index * 0.04, duration: 0.35, ease: 'easeOut' }}
+              whileHover={{ y: -4 }}
+              className="h-full"
             >
               <Card
-                className="flex items-start gap-3 px-3.5 py-3 text-left"
+                className="flex h-full flex-col items-center rounded-2xl px-3 py-4 text-center neo-shadow"
                 style={{ backgroundColor: CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length] }}
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground neo-border-2">
-                  <Icon className="size-5" />
+                <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground neo-border-2">
+                  <Icon className="size-9" />
                 </span>
-                <div>
-                  <strong className="text-base font-black tracking-wide text-accent uppercase">
-                    {role.name}
-                  </strong>
-                  <p className="mt-0.5 text-[13.5px] leading-snug font-semibold text-[#c5c5d5]">
-                    {role.short}
-                  </p>
-                </div>
+                <strong className="mt-3 text-sm font-black tracking-wide text-accent uppercase">
+                  {role.name}
+                </strong>
+                <p className="mt-1.5 text-[11.5px] leading-snug font-semibold text-[#c5c5d5]">
+                  {role.description}
+                </p>
               </Card>
             </motion.div>
           );
