@@ -1,0 +1,34 @@
+import { switchMenu } from './ui/render.js';
+import { openModal, closeModal } from './utils/modal.js';
+import { startSetup } from './game/setup.js';
+import { prepareDrawScreen, dealCards, spreadCards, pickCard, showReveal, nextPlayer } from './game/draw.js';
+import { showModeratorPage, renderModeratorList, renderDoctorStatus, renderOrphanZone, orphanFatherPending, focusOrphanZone, warnOrphanFather, pickOrphanFather, renderKingZone, checkOrphanTransform, doctorRevive, toggleStatus, killPlayer, revivePlayer, resetGame, doResetGame } from './game/moderator.js';
+import { state } from './core/state.js';
+
+// wire global functions for inline onclick
+window.switchMenu = switchMenu;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.startSetup = startSetup;
+window.prepareDrawScreen = prepareDrawScreen;
+window.dealCards = dealCards;
+window.spreadCards = spreadCards;
+window.pickCard = pickCard;
+window.showReveal = showReveal;
+window.nextPlayer = nextPlayer;
+window.showModeratorPage = showModeratorPage;
+window.renderModeratorList = renderModeratorList;
+window.renderDoctorStatus = renderDoctorStatus;
+window.renderOrphanZone = renderOrphanZone;
+window.orphanFatherPending = orphanFatherPending;
+window.focusOrphanZone = focusOrphanZone;
+window.warnOrphanFather = warnOrphanFather;
+window.pickOrphanFather = pickOrphanFather;
+window.renderKingZone = renderKingZone;
+window.checkOrphanTransform = checkOrphanTransform;
+window.doctorRevive = doctorRevive;
+window.toggleStatus = toggleStatus;
+window.killPlayer = killPlayer;
+window.revivePlayer = revivePlayer;
+window.resetGame = resetGame;
+window.doResetGame = doResetGame;
