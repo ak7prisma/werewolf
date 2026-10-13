@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Crosshair, Crown, LogOut, Moon, RotateCcw, Skull, Sun, Vote } from 'lucide-react';
+import { Crosshair, Crown, LogOut, Moon, RotateCcw, Skull, Sun, Trash2, Vote } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -93,13 +93,14 @@ export function GameBoard() {
     game,
     isHost,
     leaveRoom,
+    deleteRoom,
     submitNightAction,
     submitVote,
     submitKingVote,
     submitHunterShot,
     playAgain,
   } = useOnline();
-  const { alert } = useModal();
+  const { alert, confirm } = useModal();
   const [busy, setBusy] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const remaining = useCountdown(game?.room.deadline ?? null);
@@ -213,6 +214,26 @@ export function GameBoard() {
     if (actionMode === 'night') await act(() => submitNightAction(null));
     else if (actionMode === 'vote') await act(() => submitVote(null));
     setSelectedSeat(null);
+  }
+
+  async function destroyRoom() {
+    const ok = await confirm({
+      title: 'Bubarkan Room?',
+      description: 'Room dan seluruh permainan akan dihapus. Semua pemain dikeluarkan.',
+      confirmText: 'Bubarkan',
+      tone: 'danger',
+    });
+    if (ok) await act(deleteRoom);
+  }
+
+  async function exitRoom() {
+    const ok = await confirm({
+      title: 'Keluar dari Room?',
+      description: 'Kamu akan meninggalkan permainan ini.',
+      confirmText: 'Keluar',
+      tone: 'danger',
+    });
+    if (ok) await act(leaveRoom);
   }
 
   const info = actionMode ? actionInfo(actionMode, game.call) : null;
@@ -374,26 +395,32 @@ export function GameBoard() {
         })}
       </ul>
 
-      {finished && (
-        <div className="mt-4 flex w-full gap-2">
-          {isHost ? (
-            <>
+      <div className="mt-4 flex w-full gap-2">
+        {isHost ? (
+          <>
+            {finished && (
               <Button block disabled={busy} onClick={() => act(playAgain)}>
                 <RotateCcw />
                 Main Lagi
               </Button>
-              <Button variant="outline" disabled={busy} onClick={() => act(leaveRoom)}>
-                Bubarkan
-              </Button>
-            </>
-          ) : (
-            <Button block variant="outline" disabled={busy} onClick={() => act(leaveRoom)}>
-              <LogOut />
-              Keluar
+            )}
+            <Button
+              block={!finished}
+              variant="outline"
+              disabled={busy}
+              onClick={destroyRoom}
+            >
+              <Trash2 />
+              Bubarkan Room
             </Button>
-          )}
-        </div>
-      )}
+          </>
+        ) : (
+          <Button block variant="outline" disabled={busy} onClick={exitRoom}>
+            <LogOut />
+            Keluar
+          </Button>
+        )}
+      </div>
     </section>
   );
 }

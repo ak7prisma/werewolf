@@ -19,6 +19,7 @@ export interface OnlineContextValue {
   joinRoom: (code: string, name: string) => Promise<void>;
   setReady: (ready: boolean) => Promise<void>;
   leaveRoom: () => Promise<void>;
+  deleteRoom: () => Promise<void>;
   startGame: () => Promise<void>;
   reload: () => Promise<void>;
   submitNightAction: (targetSeat: number | null) => Promise<void>;

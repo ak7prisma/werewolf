@@ -46,6 +46,11 @@ export async function leaveRoom(): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteRoom(): Promise<void> {
+  const { error } = await client().rpc('delete_room');
+  if (error) throw error;
+}
+
 export async function beginGame(): Promise<void> {
   const { error } = await client().rpc('start_online_game');
   if (error) throw error;

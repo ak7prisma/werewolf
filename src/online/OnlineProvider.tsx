@@ -180,6 +180,15 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     setGame(null);
   }, []);
 
+  const deleteRoom = useCallback(async () => {
+    await repo.deleteRoom();
+    window.localStorage.removeItem(STORAGE_KEY);
+    setRoom(null);
+    setPlayers([]);
+    setMyRole(null);
+    setGame(null);
+  }, []);
+
   const startGame = useCallback(async () => {
     await repo.beginGame();
     if (roomId) await refresh(roomId);
@@ -244,6 +253,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       joinRoom,
       setReady,
       leaveRoom,
+      deleteRoom,
       startGame,
       reload,
       submitNightAction,
@@ -265,6 +275,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       joinRoom,
       setReady,
       leaveRoom,
+      deleteRoom,
       startGame,
       reload,
       submitNightAction,

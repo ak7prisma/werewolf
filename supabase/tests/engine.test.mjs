@@ -325,6 +325,37 @@ console.log('\nSkenario 7: keputusan Raja saat vote seri');
   assert((await gs(room)).stage === 'result', 'kembali ke tahap hasil setelah keputusan Raja');
 }
 
+// --------------------------------------------------------------------------
+// Skenario 8: host membubarkan room kapan saja (termasuk saat bermain).
+// --------------------------------------------------------------------------
+console.log('\nSkenario 8: host bubarkan room');
+{
+  await reset();
+  const a = U(1), b = U(2);
+  for (const id of [a, b]) {
+    await db.query('insert into auth.users (id) values ($1) on conflict do nothing', [id]);
+  }
+  await asUser(a);
+  const room = (await q('select * from create_room($1)', ['Host']))[0];
+  await asUser(b);
+  await q('select join_room($1, $2)', [room.code, 'B']);
+
+  let blocked = false;
+  try {
+    await db.query('select delete_room()');
+  } catch {
+    blocked = true;
+  }
+  assert(blocked, 'non-host gagal membubarkan room');
+
+  await asUser(a);
+  await db.query('select delete_room()');
+  assert((await q('select 1 from rooms where id=$1', [room.id])).length === 0,
+    'host membubarkan → room terhapus');
+  assert((await q('select 1 from room_players where room_id=$1', [room.id])).length === 0,
+    'anggota room ikut terhapus');
+}
+
 console.log(`\n${passed} lulus, ${failed} gagal`);
 await db.close();
 if (failed > 0) process.exit(1);

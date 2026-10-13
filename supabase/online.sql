@@ -253,6 +253,33 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- RPC: bubarkan room (host saja, kapan saja termasuk saat bermain)
+-- ---------------------------------------------------------------------------
+
+create or replace function public.delete_room()
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_room_id uuid;
+begin
+  select id into v_room_id
+    from public.rooms
+    where host_id = v_uid
+    limit 1;
+
+  if v_room_id is null then
+    raise exception 'Hanya host yang dapat membubarkan room.';
+  end if;
+
+  delete from public.rooms where id = v_room_id;  -- cascade ke players & state
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- RPC: mulai game (kocok + bagi role di server)
 -- ---------------------------------------------------------------------------
 
@@ -348,6 +375,7 @@ grant execute on function public.create_room(text)      to anon, authenticated;
 grant execute on function public.join_room(text, text)  to anon, authenticated;
 grant execute on function public.set_ready(boolean)      to anon, authenticated;
 grant execute on function public.leave_room()            to anon, authenticated;
+grant execute on function public.delete_room()           to anon, authenticated;
 grant execute on function public.start_game()            to anon, authenticated;
 grant execute on function public.is_room_member(uuid)    to anon, authenticated;
 
