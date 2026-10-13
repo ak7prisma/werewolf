@@ -10,12 +10,11 @@ const SPACING = 30;
 
 interface CardFanProps {
   roles: string[];
-  resolveRole: (index: number) => string;
   onPick: (index: number) => void;
   shuffle?: boolean;
 }
 
-export function CardFan({ roles, resolveRole, onPick, shuffle = false }: CardFanProps) {
+export function CardFan({ roles, onPick, shuffle = false }: CardFanProps) {
   const [shuffling, setShuffling] = useState(shuffle);
   const [split, setSplit] = useState(false);
   const [spread, setSpread] = useState(false);
@@ -67,7 +66,7 @@ export function CardFan({ roles, resolveRole, onPick, shuffle = false }: CardFan
           return (
             <DealCard
               key={`${role}-${index}`}
-              role={isPicked ? resolveRole(index) : role}
+              role={role}
               spread={spread && !shuffling}
               x={offset * SPACING}
               y={-Math.abs(offset) * 7}

@@ -29,7 +29,6 @@ export interface GameState {
   currentRole: string | null;
   pendingName: string;
   drawStep: DrawStep;
-  werewolfSpotted: boolean;
   hasDoctor: boolean;
   doctorCharges: number;
   notification: GameNotification | null;
@@ -57,7 +56,6 @@ export const initialGameState: GameState = {
   currentRole: null,
   pendingName: '',
   drawStep: DRAW_STEP.NAME,
-  werewolfSpotted: false,
   hasDoctor: false,
   doctorCharges: 0,
   notification: null,
@@ -95,25 +93,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (index < 0 || index >= state.availableRoles.length) return state;
 
       const availableRoles = [...state.availableRoles];
-      const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
-      let werewolfSpotted = state.werewolfSpotted;
-      let currentRole: string;
-
-      if (isLastPlayer && !werewolfSpotted) {
-        const werewolfIdx = availableRoles.indexOf('Werewolf');
-        if (werewolfIdx > -1 && werewolfIdx !== index) {
-          [availableRoles[werewolfIdx], availableRoles[index]] = [
-            availableRoles[index],
-            availableRoles[werewolfIdx],
-          ];
-        }
-        currentRole = 'Werewolf';
-        werewolfSpotted = true;
-      } else {
-        currentRole = availableRoles[index];
-        if (currentRole === 'Werewolf') werewolfSpotted = true;
-      }
-
+      const currentRole = availableRoles[index];
       availableRoles.splice(index, 1);
 
       const player = {
@@ -129,7 +109,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         availableRoles,
         currentRole,
-        werewolfSpotted,
         players: [...state.players, player],
         drawStep: DRAW_STEP.REVEAL,
       };

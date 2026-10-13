@@ -17,13 +17,6 @@ export function DrawStep() {
   const { state, dealCards, pickCard, nextPlayer, startModerator } = useGame();
   const { alert } = useModal();
 
-  const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
-
-  function resolveRole(index: number): string {
-    if (isLastPlayer && !state.werewolfSpotted) return 'Werewolf';
-    return state.availableRoles[index];
-  }
-
   async function handleDeal(name: string) {
     const result = dealCards(name);
     if (!result.ok) {
@@ -62,7 +55,6 @@ export function DrawStep() {
           </SectionTitle>
           <CardFan
             roles={state.availableRoles}
-            resolveRole={resolveRole}
             onPick={pickCard}
             shuffle={state.currentPlayerIdx === 0}
           />

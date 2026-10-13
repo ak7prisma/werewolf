@@ -34,10 +34,24 @@ function enforceActiveRoles(deck: string[]): string[] {
 }
 
 /**
+ * Guarantee exactly one Werewolf is present. Because every player draws from a
+ * shuffled deck, this gives each of the `totalPlayers` positions an equal 1/N
+ * chance of holding the Werewolf (instead of always landing on the last pick).
+ */
+function enforceWerewolf(deck: string[]): string[] {
+  if (deck.includes('Werewolf')) return deck;
+
+  const replaceIdx = deck.findIndex((role) => !ACTIVE_ROLES.includes(role));
+  if (replaceIdx !== -1) deck[replaceIdx] = 'Werewolf';
+
+  return deck;
+}
+
+/**
  * Build the pool of role cards dealt for a game of `totalPlayers` players.
  * Randomness happens here (outside the reducer) so the reducer stays pure.
  */
 export function createDeck(totalPlayers: number): string[] {
   const deck = shuffle(ROLE_NAMES).slice(0, totalPlayers);
-  return shuffle(enforceActiveRoles(deck));
+  return shuffle(enforceActiveRoles(enforceWerewolf(deck)));
 }

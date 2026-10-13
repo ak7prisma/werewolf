@@ -78,28 +78,42 @@ export function PlayerItem({
       </div>
 
       {player.alive ? (
-        <div className="mt-auto grid w-full grid-cols-2 gap-2">
+        isEvil ? (
           <Button
             size="sm"
             variant="secondary"
             block
-            title="Eliminasi lewat voting warga"
+            className="mt-auto"
+            title="Werewolf hanya bisa dieliminasi lewat voting warga"
             onClick={() => onVote(index)}
           >
             <Vote />
             Vote
           </Button>
-          <Button
-            size="sm"
-            variant="default"
-            block
-            title="Bunuh oleh gigitan Werewolf"
-            onClick={() => onKill(index)}
-          >
-            <Skull />
-            Bunuh
-          </Button>
-        </div>
+        ) : (
+          <div className="mt-auto grid w-full grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              block
+              title="Eliminasi lewat voting warga"
+              onClick={() => onVote(index)}
+            >
+              <Vote />
+              Vote
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              block
+              title="Bunuh oleh gigitan Werewolf"
+              onClick={() => onKill(index)}
+            >
+              <Skull />
+              Bunuh
+            </Button>
+          </div>
+        )
       ) : canRevive ? (
         <Button
           size="sm"
