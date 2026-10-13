@@ -1,6 +1,50 @@
-import { DRAW_STEP, GAME_PHASE } from './constants';
+import { DRAW_STEP, GAME_PHASE, type DrawStep, type GamePhase } from './constants';
 
-export const initialGameState = {
+export interface Player {
+  name: string;
+  role: string;
+  alive: boolean;
+  hp: number;
+  orphanFather: number | null;
+  transformedFrom: string | null;
+}
+
+export type NotificationTone = 'success' | 'danger' | 'info' | 'warning';
+
+export interface GameNotification {
+  tone: NotificationTone;
+  title: string;
+  message: string;
+}
+
+export interface GameState {
+  phase: GamePhase;
+  totalPlayers: number;
+  availableRoles: string[];
+  players: Player[];
+  currentPlayerIdx: number;
+  currentRole: string | null;
+  pendingName: string;
+  drawStep: DrawStep;
+  werewolfSpotted: boolean;
+  hasDoctor: boolean;
+  doctorCharges: number;
+  notification: GameNotification | null;
+}
+
+export type GameAction =
+  | { type: 'SETUP_START'; payload: { totalPlayers: number; roles: string[] } }
+  | { type: 'DEAL'; payload: { name: string } }
+  | { type: 'PICK'; payload: { index: number } }
+  | { type: 'NEXT_PLAYER' }
+  | { type: 'START_MODERATOR' }
+  | { type: 'KILL'; payload: { index: number } }
+  | { type: 'DOCTOR_REVIVE'; payload: { index: number } }
+  | { type: 'SET_ORPHAN_FATHER'; payload: { fatherIndex: number } }
+  | { type: 'DISMISS_NOTIFICATION' }
+  | { type: 'RESET' };
+
+export const initialGameState: GameState = {
   phase: GAME_PHASE.SETUP,
   totalPlayers: 0,
   availableRoles: [],
@@ -15,7 +59,7 @@ export const initialGameState = {
   notification: null,
 };
 
-function clonePlayers(players) {
+function clonePlayers(players: Player[]): Player[] {
   return players.map((player) => ({ ...player }));
 }
 
@@ -23,7 +67,7 @@ function clonePlayers(players) {
  * Pure reducer for the whole game. Any randomness (deck shuffling) is performed
  * by the caller and passed in through the action payload.
  */
-export function gameReducer(state, action) {
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'SETUP_START': {
       const { totalPlayers, roles } = action.payload;
@@ -49,7 +93,7 @@ export function gameReducer(state, action) {
       const availableRoles = [...state.availableRoles];
       const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
       let werewolfSpotted = state.werewolfSpotted;
-      let currentRole;
+      let currentRole: string;
 
       if (isLastPlayer && !werewolfSpotted) {
         const werewolfIdx = availableRoles.indexOf('Werewolf');
@@ -125,7 +169,7 @@ export function gameReducer(state, action) {
 
       target.alive = false;
 
-      let notification = null;
+      let notification: GameNotification | null = null;
       players.forEach((player) => {
         if (player.role === 'Orphan' && player.orphanFather === index) {
           player.role = 'Werewolf';

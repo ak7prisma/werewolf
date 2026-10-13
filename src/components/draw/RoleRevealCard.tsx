@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { getRole } from '@/data/roles';
 import { cn } from '@/lib/utils';
 
-export function RoleRevealCard({ role }) {
-  const roleData = getRole(role);
+export function RoleRevealCard({ role }: { role: string | null }) {
+  const roleData = role ? getRole(role) : null;
   if (!roleData) return null;
   const Icon = roleData.icon;
   const isWerewolf = role === 'Werewolf';

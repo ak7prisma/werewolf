@@ -1,8 +1,34 @@
 import { createContext, useContext } from 'react';
 
-export const GameContext = createContext(null);
+import type { GameState, Player } from './reducer';
 
-export function useGame() {
+export interface StartResult {
+  ok: boolean;
+  error?: string;
+}
+
+export interface GameContextValue {
+  state: GameState;
+  orphanIndex: number;
+  orphan: Player | null;
+  orphanFatherPending: boolean;
+  king: Player | null;
+  canRevive: boolean;
+  startGame: (rawTotal: string) => StartResult;
+  dealCards: (name: string) => StartResult;
+  pickCard: (index: number) => void;
+  nextPlayer: () => void;
+  startModerator: () => void;
+  killPlayer: (index: number) => void;
+  reviveWithDoctor: (index: number) => void;
+  setOrphanFather: (fatherIndex: number) => void;
+  dismissNotification: () => void;
+  resetGame: () => void;
+}
+
+export const GameContext = createContext<GameContextValue | null>(null);
+
+export function useGame(): GameContextValue {
   const context = useContext(GameContext);
   if (!context) {
     throw new Error('useGame must be used within a <GameProvider>');

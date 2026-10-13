@@ -5,7 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle, Subtitle } from '@/components/SectionTitle';
 
-export function NameStep({ playerNumber, totalPlayers, onDeal }) {
+interface NameStepProps {
+  playerNumber: number;
+  totalPlayers: number;
+  onDeal: (name: string) => void;
+}
+
+export function NameStep({ playerNumber, totalPlayers, onDeal }: NameStepProps) {
   const [name, setName] = useState('');
 
   function handleSubmit() {

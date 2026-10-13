@@ -4,6 +4,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getRole } from '@/data/roles';
 import { cn } from '@/lib/utils';
+import type { Player } from '@/game/reducer';
+
+interface PlayerItemProps {
+  player: Player;
+  index: number;
+  isOrphanFather: boolean;
+  orphanFatherName?: string | null;
+  canRevive: boolean;
+  onKill: (index: number) => void;
+  onRevive: (index: number) => void;
+}
 
 export function PlayerItem({
   player,
@@ -13,8 +24,9 @@ export function PlayerItem({
   canRevive,
   onKill,
   onRevive,
-}) {
+}: PlayerItemProps) {
   const roleData = getRole(player.role);
+  if (!roleData) return null;
   const RoleIcon = roleData.icon;
   const isEvil = roleData.team === 'werewolf';
 

@@ -1,8 +1,30 @@
 import { PawPrint } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { Transition } from 'framer-motion';
 
 import { getRole } from '@/data/roles';
 import { cn } from '@/lib/utils';
+
+interface DealCardProps {
+  role: string | null;
+  spread: boolean;
+  x: number;
+  y: number;
+  rotate: number;
+  stackX?: number;
+  stackY?: number;
+  stackRotate?: number;
+  shuffling?: boolean;
+  pileX?: number;
+  pileY?: number;
+  pileRotate?: number;
+  delay: number;
+  flipped: boolean;
+  faded: boolean;
+  disabled: boolean;
+  zIndex: number;
+  onSelect: () => void;
+}
 
 export function DealCard({
   role,
@@ -23,7 +45,7 @@ export function DealCard({
   disabled,
   zIndex,
   onSelect,
-}) {
+}: DealCardProps) {
   const roleData = role ? getRole(role) : null;
   const RoleIcon = roleData?.icon;
 
@@ -35,7 +57,7 @@ export function DealCard({
         ? { x: pileX, y: pileY, rotate: pileRotate, scale: 1 }
         : { x: stackX, y: stackY, rotate: stackRotate, scale: 1 };
 
-  const transition = flipped
+  const transition: Transition = flipped
     ? { duration: 0.4, ease: 'easeOut' }
     : spread
       ? { delay, duration: 0.55, ease: [0.2, 0.8, 0.25, 1] }

@@ -14,10 +14,14 @@ export const DRAW_STEP = {
   FAN: 'fan',
   REVEAL: 'reveal',
   HANDOVER: 'handover',
-};
+} as const;
+
+export type DrawStep = (typeof DRAW_STEP)[keyof typeof DRAW_STEP];
 
 export const GAME_PHASE = {
   SETUP: 'setup',
   DRAW: 'draw',
   MODERATOR: 'moderator',
-};
+} as const;
+
+export type GamePhase = (typeof GAME_PHASE)[keyof typeof GAME_PHASE];

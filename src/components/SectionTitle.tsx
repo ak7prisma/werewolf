@@ -1,6 +1,13 @@
+import type { ReactNode } from 'react';
+
 import { cn } from '@/lib/utils';
 
-export function SectionTitle({ children, className }) {
+interface TitleProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function SectionTitle({ children, className }: TitleProps) {
   return (
     <h2
       className={cn(
@@ -13,7 +20,7 @@ export function SectionTitle({ children, className }) {
   );
 }
 
-export function Subtitle({ children, className }) {
+export function Subtitle({ children, className }: TitleProps) {
   return (
     <p className={cn('mb-3.5 text-sm font-semibold text-muted-foreground', className)}>{children}</p>
   );

@@ -8,7 +8,11 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
-function SelectTrigger({ className, children, ...props }) {
+function SelectTrigger({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -28,7 +32,12 @@ function SelectTrigger({ className, children, ...props }) {
   );
 }
 
-function SelectContent({ className, children, position = 'popper', ...props }) {
+function SelectContent({
+  className,
+  children,
+  position = 'popper',
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -53,7 +62,11 @@ function SelectContent({ className, children, position = 'popper', ...props }) {
   );
 }
 
-function SelectItem({ className, children, ...props }) {
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -74,7 +87,7 @@ function SelectItem({ className, children, ...props }) {
   );
 }
 
-function SelectLabel({ className, ...props }) {
+function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
     <SelectPrimitive.Label
       className={cn('px-3 py-1.5 text-xs font-extrabold uppercase text-muted-foreground', className)}

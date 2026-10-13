@@ -11,6 +11,7 @@ import { DoctorStatus } from './DoctorStatus';
 import { KingZone } from './KingZone';
 import { useGame } from '@/game/GameContext';
 import { useModal } from '@/components/ModalContext';
+import type { GameNotification } from '@/game/reducer';
 
 export function ModeratorBoard() {
   const {
@@ -27,9 +28,9 @@ export function ModeratorBoard() {
   } = useGame();
   const { confirm, alert } = useModal();
 
-  const orphanZoneRef = useRef(null);
+  const orphanZoneRef = useRef<HTMLDivElement | null>(null);
   const warnedRef = useRef(false);
-  const handledNotificationRef = useRef(null);
+  const handledNotificationRef = useRef<GameNotification | null>(null);
   const [highlight, setHighlight] = useState(false);
 
   const focusOrphanZone = useCallback(() => {
@@ -64,7 +65,7 @@ export function ModeratorBoard() {
     dismissNotification();
   }, [state.notification, alert, dismissNotification]);
 
-  async function handleKill(index) {
+  async function handleKill(index: number) {
     if (orphanFatherPending) {
       await warnOrphanFather();
       return;
@@ -84,7 +85,7 @@ export function ModeratorBoard() {
     if (ok) killPlayer(index);
   }
 
-  async function handleRevive(index) {
+  async function handleRevive(index: number) {
     const player = state.players[index];
     const ok = await confirm({
       title: 'Hidupkan dengan Doctor?',
@@ -96,7 +97,8 @@ export function ModeratorBoard() {
     if (ok) reviveWithDoctor(index);
   }
 
-  async function handleSetOrphanFather(fatherIndex) {
+  async function handleSetOrphanFather(fatherIndex: number) {
+    if (!orphan) return;
     const ok = await confirm({
       title: 'Tetapkan Bapak Angkat?',
       description: `${orphan.name} akan menjadikan ${state.players[fatherIndex].name} sebagai bapak angkat.`,
@@ -118,7 +120,7 @@ export function ModeratorBoard() {
     if (ok) resetGame();
   }
 
-  const showOrphanZone = orphan !== null && orphan.orphanFather === null;
+  const orphanZone = orphan !== null && orphan.orphanFather === null ? orphan : null;
 
   return (
     <motion.section
@@ -137,11 +139,11 @@ export function ModeratorBoard() {
       <div className="w-full">
         {state.hasDoctor ? <DoctorStatus charges={state.doctorCharges} /> : null}
 
-        {showOrphanZone ? (
+        {orphanZone ? (
           <div ref={orphanZoneRef}>
             <OrphanZone
-              orphanIndex={state.players.indexOf(orphan)}
-              orphanName={orphan.name}
+              orphanIndex={state.players.indexOf(orphanZone)}
+              orphanName={orphanZone.name}
               players={state.players}
               highlight={highlight}
               onConfirm={handleSetOrphanFather}

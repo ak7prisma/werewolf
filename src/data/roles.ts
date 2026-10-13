@@ -12,6 +12,19 @@ import {
   GiVomiting,
   GiWerewolf,
 } from 'react-icons/gi';
+import type { IconType } from 'react-icons';
+
+export type RoleCategory = 'evil' | 'active' | 'variable' | 'normal';
+export type RoleTeam = 'werewolf' | 'village';
+
+export interface RoleDefinition {
+  name: string;
+  icon: IconType;
+  short: string;
+  description: string;
+  team: RoleTeam;
+  category: RoleCategory;
+}
 
 /**
  * Master catalogue of every role available in Wolf Night.
@@ -131,14 +144,16 @@ export const ROLES = {
     team: 'village',
     category: 'variable',
   },
-};
+} satisfies Record<string, RoleDefinition>;
+
+export type RoleKey = keyof typeof ROLES;
 
 /** Stable ordering used across the app. */
-export const ROLE_NAMES = Object.keys(ROLES);
+export const ROLE_NAMES = Object.keys(ROLES) as RoleKey[];
 
 /** Roles rendered in the catalogue page. */
 export const CATALOG_ROLES = ROLE_NAMES.map((key) => ROLES[key]);
 
-export function getRole(name) {
-  return ROLES[name];
+export function getRole(name: string): RoleDefinition | undefined {
+  return (ROLES as Record<string, RoleDefinition>)[name];
 }

@@ -1,9 +1,17 @@
 import { BookOpen, Play } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 
-const TABS = [
+interface TabItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+}
+
+const TABS: TabItem[] = [
   { to: '/', label: 'Main Game', icon: Play, end: true },
   { to: '/katalog', label: 'Katalog Kartu', icon: BookOpen },
 ];

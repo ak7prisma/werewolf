@@ -11,8 +11,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import type { Player } from '@/game/reducer';
 
-export function OrphanZone({ orphanIndex, orphanName, players, highlight, onConfirm }) {
+interface OrphanZoneProps {
+  orphanIndex: number;
+  orphanName: string;
+  players: Player[];
+  highlight: boolean;
+  onConfirm: (fatherIndex: number) => void;
+}
+
+export function OrphanZone({
+  orphanIndex,
+  orphanName,
+  players,
+  highlight,
+  onConfirm,
+}: OrphanZoneProps) {
   const [fatherIndex, setFatherIndex] = useState('');
 
   const candidates = players

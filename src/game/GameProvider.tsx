@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useReducer } from 'react';
+import type { ReactNode } from 'react';
 
-import { GameContext } from './GameContext';
+import { GameContext, type StartResult } from './GameContext';
 import { gameReducer, initialGameState } from './reducer';
 import { createDeck } from './logic';
 import { MAX_PLAYERS, MIN_PLAYERS } from './constants';
 
-export function GameProvider({ children }) {
+export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
 
-  const startGame = useCallback((rawTotal) => {
+  const startGame = useCallback((rawTotal: string): StartResult => {
     const totalPlayers = Number.parseInt(rawTotal, 10);
     if (Number.isNaN(totalPlayers) || totalPlayers < MIN_PLAYERS || totalPlayers > MAX_PLAYERS) {
       return {
@@ -23,7 +24,7 @@ export function GameProvider({ children }) {
     return { ok: true };
   }, []);
 
-  const dealCards = useCallback((name) => {
+  const dealCards = useCallback((name: string): StartResult => {
     const trimmed = (name ?? '').trim();
     if (!trimmed) {
       return { ok: false, error: 'Ketik namamu dulu sebelum mengambil kartu!' };
@@ -32,16 +33,22 @@ export function GameProvider({ children }) {
     return { ok: true };
   }, []);
 
-  const pickCard = useCallback((index) => dispatch({ type: 'PICK', payload: { index } }), []);
+  const pickCard = useCallback(
+    (index: number) => dispatch({ type: 'PICK', payload: { index } }),
+    [],
+  );
   const nextPlayer = useCallback(() => dispatch({ type: 'NEXT_PLAYER' }), []);
   const startModerator = useCallback(() => dispatch({ type: 'START_MODERATOR' }), []);
-  const killPlayer = useCallback((index) => dispatch({ type: 'KILL', payload: { index } }), []);
+  const killPlayer = useCallback(
+    (index: number) => dispatch({ type: 'KILL', payload: { index } }),
+    [],
+  );
   const reviveWithDoctor = useCallback(
-    (index) => dispatch({ type: 'DOCTOR_REVIVE', payload: { index } }),
+    (index: number) => dispatch({ type: 'DOCTOR_REVIVE', payload: { index } }),
     [],
   );
   const setOrphanFather = useCallback(
-    (fatherIndex) => dispatch({ type: 'SET_ORPHAN_FATHER', payload: { fatherIndex } }),
+    (fatherIndex: number) => dispatch({ type: 'SET_ORPHAN_FATHER', payload: { fatherIndex } }),
     [],
   );
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);

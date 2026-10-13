@@ -2,7 +2,7 @@ import { ROLE_NAMES } from '@/data/roles';
 import { ACTIVE_ROLES, MIN_ACTIVE_ROLES } from './constants';
 
 /** Fisher-Yates shuffle that returns a new array. */
-export function shuffle(list) {
+export function shuffle<T>(list: readonly T[]): T[] {
   const out = [...list];
   for (let i = out.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -15,8 +15,8 @@ export function shuffle(list) {
  * Guarantee at least `MIN_ACTIVE_ROLES` night-active roles are present in the
  * deck by swapping in a replacement for a non-active role.
  */
-function enforceActiveRoles(deck) {
-  const isActive = (role) => ACTIVE_ROLES.includes(role);
+function enforceActiveRoles(deck: string[]): string[] {
+  const isActive = (role: string) => ACTIVE_ROLES.includes(role);
   let missing = MIN_ACTIVE_ROLES - deck.filter(isActive).length;
 
   while (missing > 0) {
@@ -37,7 +37,7 @@ function enforceActiveRoles(deck) {
  * Build the pool of role cards dealt for a game of `totalPlayers` players.
  * Randomness happens here (outside the reducer) so the reducer stays pure.
  */
-export function createDeck(totalPlayers) {
+export function createDeck(totalPlayers: number): string[] {
   const deck = shuffle(ROLE_NAMES).slice(0, totalPlayers);
   return shuffle(enforceActiveRoles(deck));
 }

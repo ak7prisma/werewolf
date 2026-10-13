@@ -2,7 +2,7 @@ import { Scale } from 'lucide-react';
 
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 
-export function KingZone({ kingName }) {
+export function KingZone({ kingName }: { kingName: string }) {
   return (
     <Card className="mt-2 text-center">
       <CardContent className="pt-4">

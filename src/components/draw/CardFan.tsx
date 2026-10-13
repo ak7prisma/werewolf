@@ -7,11 +7,18 @@ const RIFLE_INTERVAL = 320;
 const REVEAL_DELAY = 900;
 const SPACING = 30;
 
-export function CardFan({ roles, resolveRole, onPick, shuffle = false }) {
+interface CardFanProps {
+  roles: string[];
+  resolveRole: (index: number) => string;
+  onPick: (index: number) => void;
+  shuffle?: boolean;
+}
+
+export function CardFan({ roles, resolveRole, onPick, shuffle = false }: CardFanProps) {
   const [shuffling, setShuffling] = useState(shuffle);
   const [split, setSplit] = useState(false);
   const [spread, setSpread] = useState(false);
-  const [picked, setPicked] = useState(null);
+  const [picked, setPicked] = useState<number | null>(null);
   const [label, setLabel] = useState(shuffle ? 'Mengocok kartu…' : 'Kartu siap!');
 
   useEffect(() => {
@@ -32,7 +39,7 @@ export function CardFan({ roles, resolveRole, onPick, shuffle = false }) {
 
   const count = roles.length;
 
-  function handleSelect(index) {
+  function handleSelect(index: number) {
     if (picked !== null || shuffling) return;
     setPicked(index);
     setShuffling(false);

@@ -19,12 +19,12 @@ export function DrawStep() {
 
   const isLastPlayer = state.currentPlayerIdx === state.totalPlayers - 1;
 
-  function resolveRole(index) {
+  function resolveRole(index: number): string {
     if (isLastPlayer && !state.werewolfSpotted) return 'Werewolf';
     return state.availableRoles[index];
   }
 
-  async function handleDeal(name) {
+  async function handleDeal(name: string) {
     const result = dealCards(name);
     if (!result.ok) {
       await alert({ title: 'Nama Kosong', description: result.error, tone: 'warning' });

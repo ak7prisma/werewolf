@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import { ModalContext } from './ModalContext';
+import { ModalContext, type ModalContextValue, type ModalOptions, type ModalTone } from './ModalContext';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-const CONFIRM_VARIANTS = {
+type ModalMode = 'confirm' | 'alert';
+type DialogState = ModalOptions & { mode: ModalMode };
+
+const CONFIRM_VARIANTS: Record<ModalTone, 'default' | 'success' | 'info' | 'accent'> = {
   default: 'default',
   danger: 'default',
   success: 'success',
@@ -19,28 +23,28 @@ const CONFIRM_VARIANTS = {
   warning: 'accent',
 };
 
-export function ModalProvider({ children }) {
-  const [dialog, setDialog] = useState(null);
-  const resolverRef = useRef(null);
+export function ModalProvider({ children }: { children: ReactNode }) {
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+  const resolverRef = useRef<((value: boolean) => void) | null>(null);
 
-  const open = useCallback((options, mode) => {
-    return new Promise((resolve) => {
+  const open = useCallback((options: ModalOptions, mode: ModalMode): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
       setDialog({ mode, ...options });
     });
   }, []);
 
-  const confirm = useCallback((options) => open(options, 'confirm'), [open]);
-  const alert = useCallback((options) => open(options, 'alert'), [open]);
+  const confirm = useCallback((options: ModalOptions) => open(options, 'confirm'), [open]);
+  const alert = useCallback((options: ModalOptions) => open(options, 'alert'), [open]);
 
-  const settle = useCallback((result) => {
+  const settle = useCallback((result: boolean) => {
     setDialog(null);
     const resolve = resolverRef.current;
     resolverRef.current = null;
     resolve?.(result);
   }, []);
 
-  const value = useMemo(
+  const value = useMemo<ModalContextValue>(
     () => ({ confirm, alert, isOpen: dialog !== null }),
     [confirm, alert, dialog],
   );
@@ -65,7 +69,7 @@ export function ModalProvider({ children }) {
               </Button>
             ) : null}
             <Button
-              variant={CONFIRM_VARIANTS[dialog?.tone] || 'default'}
+              variant={dialog?.tone ? CONFIRM_VARIANTS[dialog.tone] : 'default'}
               block
               onClick={() => settle(true)}
             >
