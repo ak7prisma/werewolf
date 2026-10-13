@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { SectionTitle } from '@/components/SectionTitle';
 import { PlayerItem } from './PlayerItem';
 import { OrphanZone } from './OrphanZone';
+import { DoppelgangerZone } from './DoppelgangerZone';
 import { DoctorStatus } from './DoctorStatus';
 import { KingZone } from './KingZone';
 import { useGame } from '@/game/GameContext';
@@ -24,6 +25,10 @@ export function ModeratorBoard() {
     orphanFatherPending,
     king,
     canRevive,
+    doppelganger,
+    doppelgangerIndex,
+    canCopyRole,
+    copyRoleWithDoppelganger,
     dismissNotification,
   } = useGame();
   const { confirm, alert } = useModal();
@@ -109,6 +114,19 @@ export function ModeratorBoard() {
     if (ok) setOrphanFather(fatherIndex);
   }
 
+  async function handleCopyRole(targetIndex: number) {
+    if (!doppelganger) return;
+    const target = state.players[targetIndex];
+    const ok = await confirm({
+      title: 'Ambil Role Orang Mati?',
+      description: `${doppelganger.name} (Doppelganger) akan mengambil peran ${target.role} milik ${target.name}. Tindakan ini hanya bisa dilakukan sekali.`,
+      confirmText: 'Ambil Role',
+      cancelText: 'Batal',
+      tone: 'info',
+    });
+    if (ok) copyRoleWithDoppelganger(targetIndex);
+  }
+
   async function handleReset() {
     const ok = await confirm({
       title: 'Mulai Ulang?',
@@ -121,6 +139,7 @@ export function ModeratorBoard() {
   }
 
   const orphanZone = orphan !== null && orphan.orphanFather === null ? orphan : null;
+  const doppelgangerZone = canCopyRole && doppelganger !== null ? doppelganger : null;
 
   return (
     <motion.section
@@ -149,6 +168,15 @@ export function ModeratorBoard() {
               onConfirm={handleSetOrphanFather}
             />
           </div>
+        ) : null}
+
+        {doppelgangerZone ? (
+          <DoppelgangerZone
+            doppelgangerIndex={doppelgangerIndex}
+            doppelgangerName={doppelgangerZone.name}
+            players={state.players}
+            onConfirm={handleCopyRole}
+          />
         ) : null}
 
         <div className="mt-2 mb-1.5 grid grid-cols-2 gap-2.5">

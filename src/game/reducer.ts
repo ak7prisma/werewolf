@@ -41,6 +41,7 @@ export type GameAction =
   | { type: 'KILL'; payload: { index: number } }
   | { type: 'DOCTOR_REVIVE'; payload: { index: number } }
   | { type: 'SET_ORPHAN_FATHER'; payload: { fatherIndex: number } }
+  | { type: 'DOPPELGANGER_COPY'; payload: { targetIndex: number } }
   | { type: 'DISMISS_NOTIFICATION' }
   | { type: 'RESET' };
 
@@ -212,6 +213,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       players[orphanIdx].orphanFather = fatherIndex;
       return { ...state, players };
+    }
+
+    case 'DOPPELGANGER_COPY': {
+      const { targetIndex } = action.payload;
+      const players = clonePlayers(state.players);
+      const doppelgangerIdx = players.findIndex((player) => player.role === 'Doppelganger');
+      const target = players[targetIndex];
+
+      if (doppelgangerIdx === -1 || targetIndex === doppelgangerIdx) return state;
+      if (!target || target.alive) return state;
+
+      const doppelganger = players[doppelgangerIdx];
+      doppelganger.role = target.role;
+      doppelganger.transformedFrom = 'Doppelganger';
+      if (doppelganger.alive) {
+        doppelganger.hp = target.role === 'Strong Villager' ? 2 : 1;
+        doppelganger.orphanFather = null;
+      }
+
+      return {
+        ...state,
+        players,
+        notification: {
+          tone: 'info',
+          title: 'Peran Diambil!',
+          message: `${doppelganger.name} (Doppelganger) kini menyamar sebagai ${target.role}, mengambil peran almarhum ${target.name}.`,
+        },
+      };
     }
 
     case 'DISMISS_NOTIFICATION':

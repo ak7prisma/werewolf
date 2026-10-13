@@ -14,6 +14,9 @@ export interface GameContextValue {
   orphanFatherPending: boolean;
   king: Player | null;
   canRevive: boolean;
+  doppelgangerIndex: number;
+  doppelganger: Player | null;
+  canCopyRole: boolean;
   startGame: (rawTotal: string) => StartResult;
   dealCards: (name: string) => StartResult;
   pickCard: (index: number) => void;
@@ -22,6 +25,7 @@ export interface GameContextValue {
   killPlayer: (index: number) => void;
   reviveWithDoctor: (index: number) => void;
   setOrphanFather: (fatherIndex: number) => void;
+  copyRoleWithDoppelganger: (targetIndex: number) => void;
   dismissNotification: () => void;
   resetGame: () => void;
 }

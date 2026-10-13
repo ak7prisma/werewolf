@@ -51,6 +51,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (fatherIndex: number) => dispatch({ type: 'SET_ORPHAN_FATHER', payload: { fatherIndex } }),
     [],
   );
+  const copyRoleWithDoppelganger = useCallback(
+    (targetIndex: number) => dispatch({ type: 'DOPPELGANGER_COPY', payload: { targetIndex } }),
+    [],
+  );
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
 
@@ -62,7 +66,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const king = state.players.find((player) => player.role === 'King' && player.alive) ?? null;
     const canRevive = state.hasDoctor && state.doctorCharges > 0;
 
-    return { orphanIndex, orphan, orphanFatherPending, king, canRevive };
+    const doppelgangerIndex = state.players.findIndex((player) => player.role === 'Doppelganger');
+    const doppelganger = doppelgangerIndex === -1 ? null : state.players[doppelgangerIndex];
+    const canCopyRole =
+      doppelgangerIndex !== -1 &&
+      state.players.some((player, index) => !player.alive && index !== doppelgangerIndex);
+
+    return {
+      orphanIndex,
+      orphan,
+      orphanFatherPending,
+      king,
+      canRevive,
+      doppelgangerIndex,
+      doppelganger,
+      canCopyRole,
+    };
   }, [state.players, state.hasDoctor, state.doctorCharges]);
 
   const value = useMemo(
@@ -77,6 +96,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       killPlayer,
       reviveWithDoctor,
       setOrphanFather,
+      copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,
     }),
@@ -91,6 +111,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       killPlayer,
       reviveWithDoctor,
       setOrphanFather,
+      copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,
     ],
