@@ -77,6 +77,11 @@ export async function submitVote(targetSeat: number | null): Promise<void> {
   if (error) throw error;
 }
 
+export async function submitDayReady(): Promise<void> {
+  const { error } = await client().rpc('submit_day_ready');
+  if (error) throw error;
+}
+
 export async function submitKingVote(targetSeat: number): Promise<void> {
   const { error } = await client().rpc('submit_king_vote', { p_target_seat: targetSeat });
   if (error) throw error;

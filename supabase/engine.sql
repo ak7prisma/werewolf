@@ -26,6 +26,7 @@ create table if not exists public.game_state (
   resume_stage       text,
   night_order        text[] not null default '{}',
   night_index        int  not null default 0,
+  night_acted        text[] not null default '{}',
   wolf_target        int,
   guard_target       int,
   last_guard_target  int,
@@ -38,6 +39,7 @@ create table if not exists public.game_state (
   king_tied          int[],
   night_start_alive  int[],
   day_report         text[],
+  day_ready          int[],
   doctor_charges     int  not null default 0,
   deadline           timestamptz,
   winner             text,
@@ -47,6 +49,8 @@ create table if not exists public.game_state (
 alter table public.game_state add column if not exists king_tied int[];
 alter table public.game_state add column if not exists night_start_alive int[];
 alter table public.game_state add column if not exists day_report text[];
+alter table public.game_state add column if not exists day_ready int[];
+alter table public.game_state add column if not exists night_acted text[] not null default '{}';
 
 alter table public.game_state enable row level security;
 -- Sengaja tanpa policy: hanya RPC SECURITY DEFINER yang boleh mengakses.
@@ -343,41 +347,9 @@ begin
 end;
 $$;
 
--- Lanjut ke call berikutnya, atau resolusi fajar bila sudah habis.
-create or replace function public._advance_call(p_room uuid)
-returns void language plpgsql security definer set search_path = public, pg_temp as $$
-declare
-  v_gs   public.game_state;
-  v_next int;
-  v_role text;
-  v_cand int[];
-begin
-  select * into v_gs from public.game_state where room_id = p_room for update;
-  v_next := v_gs.night_index + 1;
-
-  loop
-    if v_next >= coalesce(cardinality(v_gs.night_order), 0) then
-      perform public._resolve_dawn(p_room);
-      return;
-    end if;
-
-    v_role := v_gs.night_order[v_next + 1];
-    v_cand := public._candidates(p_room, v_role);
-
-    if coalesce(cardinality(v_cand), 0) > 0 then
-      update public.game_state
-        set night_index = v_next,
-            deadline = now() + interval '45 seconds',
-            updated_at = now()
-        where room_id = p_room;
-      perform public._event(p_room, 'call', format('Moderator memanggil role: %s', v_role));
-      return;
-    end if;
-
-    v_next := v_next + 1;
-  end loop;
-end;
-$$;
+-- Aksi malam kini paralel (lihat _begin_night dan submit_night_action), sehingga
+-- helper pemanggil role bergantian sudah tidak dipakai lagi.
+drop function if exists public._advance_call(uuid);
 
 create or replace function public._resolve_dawn(p_room uuid)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
@@ -406,7 +378,8 @@ begin
     return;
   end if;
 
-  update public.game_state set stage = 'dawn', deadline = now() + interval '8 seconds' where room_id = p_room;
+  -- Tanpa jeda: begitu semua role malam beraksi, fajar langsung berganti siang.
+  update public.game_state set stage = 'dawn', deadline = now() where room_id = p_room;
   perform public._check_winner(p_room);
 end;
 $$;
@@ -447,8 +420,8 @@ begin
   end if;
 
   update public.game_state
-    set phase = 'day', stage = 'discussion', deadline = now() + interval '90 seconds',
-        day_victim = null, day_report = v_report
+    set phase = 'day', stage = 'discussion', deadline = now() + interval '120 seconds',
+        day_victim = null, day_report = v_report, day_ready = '{}'
     where room_id = p_room;
   update public.rooms set phase = 'day', stage = 'discussion', updated_at = now() where id = p_room;
   perform public._event(p_room, 'day', 'Siang tiba.');
@@ -461,7 +434,8 @@ declare v_round int;
 begin
   select round into v_round from public.game_state where room_id = p_room;
   delete from public.votes where room_id = p_room and round = v_round;
-  update public.game_state set stage = 'vote', deadline = now() + interval '45 seconds' where room_id = p_room;
+  update public.game_state set stage = 'vote', deadline = now() + interval '60 seconds', day_ready = '{}'
+    where room_id = p_room;
   update public.rooms set stage = 'vote', updated_at = now() where id = p_room;
   perform public._event(p_room, 'vote', 'Voting dimulai — pilih siapa yang digantung!');
 end;
@@ -547,17 +521,26 @@ declare
   v_gs    public.game_state;
   v_round int;
   v_role  text;
-  v_cand  int[];
+  v_order text[] := '{}';
 begin
   select * into v_gs from public.game_state where room_id = p_room for update;
   v_round := v_gs.round + 1;
+
+  -- Hanya role yang punya target valid. Semua role ini beraksi PARALEL dalam
+  -- satu jendela waktu (tidak bergantian menunggu satu sama lain).
+  foreach v_role in array public._night_order(p_room, v_round) loop
+    if coalesce(cardinality(public._candidates(p_room, v_role)), 0) > 0 then
+      v_order := array_append(v_order, v_role);
+    end if;
+  end loop;
 
   update public.game_state
     set round = v_round,
         phase = 'night',
         stage = 'call',
-        night_order = public._night_order(p_room, v_round),
+        night_order = v_order,
         night_index = 0,
+        night_acted = '{}',
         wolf_target = null,
         guard_target = null,
         seer_target = null,
@@ -567,26 +550,16 @@ begin
         pending_hunter = null,
         night_start_alive = public._alive_seats(p_room),
         day_report = null,
-        winner = null
+        day_ready = '{}',
+        winner = null,
+        deadline = case when cardinality(v_order) > 0 then now() + interval '90 seconds' else null end
     where room_id = p_room;
 
   update public.rooms set phase = 'night', stage = 'call', updated_at = now() where id = p_room;
   perform public._event(p_room, 'night', format('Malam ke-%s. Semua tidur…', v_round));
 
-  select * into v_gs from public.game_state where room_id = p_room;
-
-  if coalesce(cardinality(v_gs.night_order), 0) = 0 then
+  if cardinality(v_order) = 0 then
     perform public._resolve_dawn(p_room);
-    return;
-  end if;
-
-  v_role := v_gs.night_order[1];
-  v_cand := public._candidates(p_room, v_role);
-  if coalesce(cardinality(v_cand), 0) = 0 then
-    perform public._advance_call(p_room);
-  else
-    update public.game_state set deadline = now() + interval '45 seconds' where room_id = p_room;
-    perform public._event(p_room, 'call', format('Moderator memanggil role: %s', v_role));
   end if;
 end;
 $$;
@@ -665,10 +638,10 @@ begin
   on conflict (room_id) do update
     set round = 0, phase = 'night', stage = 'call',
         doctor_charges = case when v_has_doc then 1 else 0 end,
-        night_order = '{}', night_index = 0, wolf_target = null, guard_target = null,
+        night_order = '{}', night_index = 0, night_acted = '{}', wolf_target = null, guard_target = null,
         last_guard_target = null, guardian_self_used = false, seer_target = null,
         wolf_poisoned = false, wolf_skip = false, pending_hunter = null, day_victim = null,
-        king_tied = null, night_start_alive = null, day_report = null,
+        king_tied = null, night_start_alive = null, day_report = null, day_ready = null,
         winner = null, deadline = null, resume_stage = null, updated_at = now();
 
   update public.rooms set status = 'playing', phase = 'night', stage = 'call', round = 1, winner = null, updated_at = now()
@@ -727,8 +700,8 @@ begin
   select * into v_gs from public.game_state where room_id = v_room.id for update;
   if v_gs.phase = 'finished' then return; end if;
 
-  if v_gs.stage = 'call' and now() > v_gs.deadline then
-    perform public._advance_call(v_room.id);
+  if v_gs.stage = 'call' and v_gs.deadline is not null and now() > v_gs.deadline then
+    perform public._resolve_dawn(v_room.id);
 
   elsif v_gs.stage = 'hunter' and now() > v_gs.deadline then
     update public.game_state set pending_hunter = null,
@@ -770,13 +743,14 @@ $$;
 create or replace function public.submit_night_action(p_target_seat int)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_uid  uuid := auth.uid();
-  v_room uuid;
-  v_gs   public.game_state;
-  v_seat int;
-  v_role text;
+  v_uid    uuid := auth.uid();
+  v_room   uuid;
+  v_gs     public.game_state;
+  v_seat   int;
   v_myrole text;
-  v_cand int[];
+  v_actrole text;
+  v_cand   int[];
+  v_acted  text[];
 begin
   select r.id into v_room from public.rooms r
     join public.room_players rp on rp.room_id = r.id
@@ -787,33 +761,35 @@ begin
   if v_gs.phase <> 'night' or v_gs.stage <> 'call' then raise exception 'Bukan waktunya aksi malam.'; end if;
 
   v_seat := public._seat_of_user(v_room, v_uid);
-  v_role := v_gs.night_order[v_gs.night_index + 1];
-  v_myrole := public._role_of_seat(v_room, v_seat);
-
   if v_seat is null or not (select alive from public.room_players where room_id = v_room and seat = v_seat) then
     raise exception 'Kamu sudah tidak hidup.';
   end if;
+  v_myrole := public._role_of_seat(v_room, v_seat);
   if v_myrole is null then raise exception 'Peranmu belum dibagikan.'; end if;
 
-  if v_role = 'Werewolf' then
-    if public._team_of_role(v_myrole) <> 'werewolf' then raise exception 'Bukan giliranmu.'; end if;
-  elsif v_myrole <> v_role then
-    raise exception 'Bukan giliranmu.';
+  -- Tim werewolf beraksi sebagai role 'Werewolf'.
+  v_actrole := case when public._team_of_role(v_myrole) = 'werewolf' then 'Werewolf' else v_myrole end;
+
+  if not (v_actrole = any(coalesce(v_gs.night_order, '{}'))) then
+    raise exception 'Kamu tidak punya aksi malam ini.';
+  end if;
+  if v_actrole = any(coalesce(v_gs.night_acted, '{}')) then
+    raise exception 'Aksimu malam ini sudah tercatat.';
   end if;
 
   if p_target_seat is not null then
-    v_cand := public._candidates(v_room, v_role);
+    v_cand := public._candidates(v_room, v_actrole);
     if not (p_target_seat = any(v_cand)) then raise exception 'Target tidak valid.'; end if;
 
-    if v_role = 'Werewolf' then
+    if v_actrole = 'Werewolf' then
       update public.game_state set wolf_target = p_target_seat where room_id = v_room;
-    elsif v_role = 'Guardian' then
+    elsif v_actrole = 'Guardian' then
       update public.game_state
         set guard_target = p_target_seat,
             last_guard_target = p_target_seat,
             guardian_self_used = guardian_self_used or (p_target_seat = v_seat)
         where room_id = v_room;
-    elsif v_role = 'Seer' then
+    elsif v_actrole = 'Seer' then
       update public.game_state set seer_target = p_target_seat where room_id = v_room;
       insert into public.player_results (room_id, user_id, round, kind, target_seat, is_threat)
       values (v_room, v_uid, v_gs.round, 'seer', p_target_seat,
@@ -821,7 +797,7 @@ begin
          or public._role_of_seat(v_room, p_target_seat) = 'Lycan'))
       on conflict (room_id, user_id, round, kind) do update
         set target_seat = excluded.target_seat, is_threat = excluded.is_threat;
-    elsif v_role = 'Doctor' then
+    elsif v_actrole = 'Doctor' then
       update public.room_players
         set alive = true, hp = case when public._role_of_seat(v_room, p_target_seat) = 'Strong Villager' then 2 else 1 end
         where room_id = v_room and seat = p_target_seat;
@@ -829,9 +805,9 @@ begin
       perform public._event(v_room, 'doctor',
         format('%s dihidupkan kembali oleh Dokter!',
           (select display_name from public.room_players where room_id = v_room and seat = p_target_seat)));
-    elsif v_role = 'Orphan' then
+    elsif v_actrole = 'Orphan' then
       update public.player_roles set orphan_father = p_target_seat where room_id = v_room and user_id = v_uid;
-    elsif v_role = 'Doppelganger' then
+    elsif v_actrole = 'Doppelganger' then
       update public.player_roles
         set role = public._role_of_seat(v_room, p_target_seat), transformed_from = 'Doppelganger'
         where room_id = v_room and user_id = v_uid;
@@ -841,7 +817,16 @@ begin
     end if;
   end if;
 
-  perform public._advance_call(v_room);
+  v_acted := coalesce(v_gs.night_acted, '{}') || v_actrole;
+  update public.game_state set night_acted = v_acted, updated_at = now() where room_id = v_room;
+
+  -- Semua role sudah beraksi? Langsung selesaikan malam, tanpa menunggu timer.
+  if not exists (
+    select 1 from unnest(coalesce(v_gs.night_order, '{}')) as r(role)
+    where r.role <> all(v_acted)
+  ) then
+    perform public._resolve_dawn(v_room);
+  end if;
 end;
 $$;
 
@@ -872,6 +857,58 @@ begin
   insert into public.votes (room_id, round, voter_id, target_seat)
   values (v_room, v_gs.round, v_uid, p_target_seat)
   on conflict (room_id, round, voter_id) do update set target_seat = excluded.target_seat;
+end;
+$$;
+
+-- Setiap pemain hidup menandai "siap melewati siang". Bila SEMUA pemain hidup
+-- sepakat, siang langsung berakhir dan malam berikutnya dimulai tanpa eliminasi
+-- — berguna di hari pertama yang belum ada informasi apa pun.
+create or replace function public.submit_day_ready()
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid   uuid := auth.uid();
+  v_room  uuid;
+  v_gs    public.game_state;
+  v_seat  int;
+  v_alive int;
+  v_ready int;
+begin
+  select r.id into v_room from public.rooms r
+    join public.room_players rp on rp.room_id = r.id
+    where rp.user_id = v_uid and r.status = 'playing' limit 1;
+  if v_room is null then raise exception 'Kamu tidak sedang dalam permainan.'; end if;
+
+  select * into v_gs from public.game_state where room_id = v_room for update;
+  if v_gs.phase <> 'day' or v_gs.stage not in ('discussion', 'vote') then
+    raise exception 'Belum waktunya melewati siang.';
+  end if;
+  -- Hanya siang hari pertama (ronde 1) yang boleh dilewati.
+  if v_gs.round <> 1 then
+    raise exception 'Lewati siang hanya tersedia di hari pertama.';
+  end if;
+
+  v_seat := public._seat_of_user(v_room, v_uid);
+  if v_seat is null or not (select alive from public.room_players where room_id = v_room and seat = v_seat) then
+    raise exception 'Hanya pemain hidup yang boleh melewati siang.';
+  end if;
+
+  update public.game_state
+    set day_ready = (select coalesce(array_agg(distinct s order by s), '{}')
+                     from unnest(coalesce(v_gs.day_ready, '{}') || v_seat) s)
+    where room_id = v_room;
+
+  select count(*) into v_alive from public.room_players where room_id = v_room and alive;
+  select count(*) into v_ready from public.room_players
+    where room_id = v_room and alive
+      and seat = any(coalesce((select day_ready from public.game_state where room_id = v_room), '{}'));
+
+  if v_alive > 0 and v_ready >= v_alive then
+    perform public._event(v_room, 'day', 'Semua pemain sepakat melewati siang.');
+    perform public._check_winner(v_room);
+    if (select phase from public.game_state where room_id = v_room) <> 'finished' then
+      perform public._begin_night(v_room);
+    end if;
+  end if;
 end;
 $$;
 
@@ -955,6 +992,7 @@ declare
   v_gs public.game_state;
   v_seat int;
   v_myrole text;
+  v_actrole text;
   v_call text;
   v_cand int[];
   v_result jsonb;
@@ -969,8 +1007,15 @@ begin
   select * into v_gs from public.game_state where room_id = v_room.id;
   v_seat := public._seat_of_user(v_room.id, v_uid);
   v_myrole := public._role_of_seat(v_room.id, v_seat);
-  v_call := case when v_gs.phase = 'night' and v_gs.stage = 'call'
-                 then v_gs.night_order[v_gs.night_index + 1] else null end;
+  -- Aksi malam paralel: setiap pemain melihat aksinya sendiri (bila belum beraksi).
+  v_actrole := case when public._team_of_role(v_myrole) = 'werewolf' then 'Werewolf' else v_myrole end;
+  v_call := case
+    when v_gs.phase = 'night' and v_gs.stage = 'call'
+         and v_seat is not null
+         and (select alive from public.room_players where room_id = v_room.id and seat = v_seat)
+         and v_actrole = any(coalesce(v_gs.night_order, '{}'))
+         and not (v_actrole = any(coalesce(v_gs.night_acted, '{}')))
+    then v_actrole else null end;
   v_cand := case when v_call is not null then public._candidates(v_room.id, v_call) else '{}'::int[] end;
 
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -1003,19 +1048,20 @@ begin
                            else '[]'::jsonb end,
     'dayReport', case when v_gs.phase = 'day' then to_jsonb(coalesce(v_gs.day_report, '{}'))
                       else '[]'::jsonb end,
+    'dayReady', coalesce(cardinality(v_gs.day_ready), 0),
+    'dayAlive', (select count(*) from public.room_players where room_id = v_room.id and alive),
     'players', v_players,
     'events', v_events,
     'you', jsonb_build_object(
       'seat', v_seat,
       'role', v_myrole,
       'alive', (select alive from public.room_players where room_id = v_room.id and seat = v_seat),
-      'isYourTurn', (v_call is not null
-                     and (case when v_call = 'Werewolf' then public._team_of_role(v_myrole) = 'werewolf'
-                               else v_myrole = v_call end)),
+      'isYourTurn', (v_call is not null),
       'canVote', (v_gs.stage = 'vote'
                   and (select alive from public.room_players where room_id = v_room.id and seat = v_seat)),
       'awaitingHunter', (v_gs.stage = 'hunter' and v_gs.pending_hunter = v_seat),
       'isKing', (v_gs.stage = 'king' and v_seat is not null and v_seat = public._king_seat(v_room.id)),
+      'skipReady', (v_seat is not null and v_seat = any(coalesce(v_gs.day_ready, '{}'))),
       'allies', case when public._team_of_role(v_myrole) = 'werewolf' then (
         select coalesce(jsonb_agg(rp.seat order by rp.seat), '[]'::jsonb)
         from public.room_players rp
@@ -1034,6 +1080,7 @@ grant execute on function public.play_again()                   to anon, authent
 grant execute on function public.game_tick()                    to anon, authenticated;
 grant execute on function public.submit_night_action(int)       to anon, authenticated;
 grant execute on function public.submit_vote(int)               to anon, authenticated;
+grant execute on function public.submit_day_ready()             to anon, authenticated;
 grant execute on function public.submit_king_vote(int)          to anon, authenticated;
 grant execute on function public.submit_hunter_shot(int)        to anon, authenticated;
 grant execute on function public.game_view()                    to anon, authenticated;

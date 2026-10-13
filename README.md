@@ -95,5 +95,5 @@ npm run test:sql # uji engine SQL via PGlite (tanpa Docker)
 `supabase/` berisi skema dan engine:
 - `schema.sql` — tabel katalog `roles` + seed.
 - `online.sql` — profil, room, lobby, pembagian role, realtime.
-- `engine.sql` — mesin fase malam/siang otomatis (`start_online_game`, `game_tick`, `submit_night_action`, `submit_vote`, `submit_king_vote`, `submit_hunter_shot`, `game_view`, `play_again`). Saat vote seri dan Raja masih hidup, permainan masuk tahap `king` agar Raja memutuskan siapa yang dieliminasi.
+- `engine.sql` — mesin fase malam/siang otomatis (`start_online_game`, `game_tick`, `submit_night_action`, `submit_vote`, `submit_day_ready`, `submit_king_vote`, `submit_hunter_shot`, `game_view`, `play_again`). Semua role aktif beraksi **paralel** dalam satu jendela malam (tanpa bergantian); malam berakhir begitu semua role beraksi atau waktu habis. Durasi: malam 1,5 menit, diskusi 2 menit, vote 1 menit. Saat vote seri dan Raja masih hidup, permainan masuk tahap `king` agar Raja memutuskan siapa yang dieliminasi. Di hari pertama semua pemain dapat sepakat melewati siang (`submit_day_ready`) sehingga langsung ke malam tanpa eliminasi.
 - `tests/engine.test.mjs` — uji integrasi engine memakai `@electric-sql/pglite`.

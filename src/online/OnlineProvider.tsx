@@ -119,8 +119,8 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
           const expired = Boolean(
             view.room.deadline && new Date(view.room.deadline).getTime() <= Date.now(),
           );
-          // Vote juga dimajukan lebih awal begitu semua pemain hidup sudah memilih.
-          if (expired || view.room.stage === 'vote') {
+          // Vote dimajukan begitu semua pemain hidup memilih; fajar langsung ke siang.
+          if (expired || view.room.stage === 'vote' || view.room.stage === 'dawn') {
             await repo.gameTick();
             const next = await repo.fetchGameView();
             if (!cancelled) setGame(next);
@@ -216,6 +216,11 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     [refreshGame],
   );
 
+  const submitDayReady = useCallback(async () => {
+    await repo.submitDayReady();
+    await refreshGame();
+  }, [refreshGame]);
+
   const submitKingVote = useCallback(
     async (targetSeat: number) => {
       await repo.submitKingVote(targetSeat);
@@ -258,6 +263,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       reload,
       submitNightAction,
       submitVote,
+      submitDayReady,
       submitKingVote,
       submitHunterShot,
       playAgain,
@@ -280,6 +286,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       reload,
       submitNightAction,
       submitVote,
+      submitDayReady,
       submitKingVote,
       submitHunterShot,
       playAgain,

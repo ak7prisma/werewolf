@@ -81,6 +81,8 @@ export interface GameView {
   candidates: number[];
   kingCandidates: number[];
   dayReport: string[];
+  dayReady: number;
+  dayAlive: number;
   players: GamePlayerView[];
   events: GameEventView[];
   you: {
@@ -91,6 +93,7 @@ export interface GameView {
     canVote: boolean;
     awaitingHunter: boolean;
     isKing: boolean;
+    skipReady: boolean;
     allies: number[];
     seer: SeerResultView | null;
   };

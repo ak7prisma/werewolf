@@ -99,12 +99,14 @@ const uidOfWolf = async (room) =>
 const expire = (room) =>
   db.query("update game_state set deadline = now() - interval '1 second' where room_id = $1", [room]);
 
-// Jalankan seluruh call malam secara generik mengikuti urutan yang diacak.
+// Jalankan seluruh aksi malam (paralel) — role boleh beraksi dalam urutan apa pun.
 async function playNight(room, targetsByRole) {
   for (let guard = 0; guard < 20; guard += 1) {
     const g = await gs(room);
     if (!(g.phase === 'night' && g.stage === 'call')) return;
-    const role = g.night_order[g.night_index];
+    const acted = g.night_acted ?? [];
+    const role = (g.night_order ?? []).find((r) => !acted.includes(r));
+    if (!role) return;
     const uid = role === 'Werewolf' ? await uidOfWolf(room) : await uidByRole(room, role);
     const target = targetsByRole[role] ?? null;
     await asUser(uid);
@@ -354,6 +356,65 @@ console.log('\nSkenario 8: host bubarkan room');
     'host membubarkan → room terhapus');
   assert((await q('select 1 from room_players where room_id=$1', [room.id])).length === 0,
     'anggota room ikut terhapus');
+}
+
+// --------------------------------------------------------------------------
+// Skenario 9: semua pemain sepakat melewati siang → langsung malam.
+// --------------------------------------------------------------------------
+console.log('\nSkenario 9: lewati siang lewat kesepakatan');
+{
+  const room = '00000000-0000-0000-0000-0000000000a9';
+  const a = U(1), b = U(2), c = U(3), d = U(4), e = U(5);
+  await setupGame(room, { [a]: 'Werewolf', [b]: 'Seer', [c]: 'Guardian', [d]: 'Hunter', [e]: 'Disease' }, 0);
+  await playNight(room, { Seer: 0 });
+  await tick(room, a); // fajar → diskusi
+  assert((await gs(room)).stage === 'discussion', 'siang diskusi dimulai');
+
+  await asUser(a);
+  await db.query('select submit_day_ready()');
+  assert((await gs(room)).stage === 'discussion', 'baru satu pemain siap → siang belum berakhir');
+
+  for (const uid of [b, c, d, e]) { await asUser(uid); await db.query('select submit_day_ready()'); }
+  const g = await gs(room);
+  assert(g.phase === 'night' && g.round === 2, 'semua siap → langsung malam tanpa eliminasi');
+  assert((await gs(room)).day_ready.length === 0, 'daftar siap direset saat malam baru');
+
+  // Hari kedua tidak boleh dilewati.
+  await db.query("update game_state set phase='day', stage='discussion', round=2 where room_id=$1", [room]);
+  await asUser(a);
+  let rejected = false;
+  try {
+    await db.query('select submit_day_ready()');
+  } catch {
+    rejected = true;
+  }
+  assert(rejected, 'lewati siang ditolak setelah hari pertama');
+}
+
+// --------------------------------------------------------------------------
+// Skenario 10: aksi malam paralel — satu role beraksi tidak memblokir yang lain.
+// --------------------------------------------------------------------------
+console.log('\nSkenario 10: aksi malam paralel');
+{
+  const room = '00000000-0000-0000-0000-0000000000aa';
+  const a = U(1), b = U(2), c = U(3), d = U(4), e = U(5);
+  await setupGame(room, { [a]: 'Werewolf', [b]: 'Seer', [c]: 'Guardian', [d]: 'Hunter', [e]: 'Disease' }, 1);
+
+  await asUser(b);
+  await db.query('select submit_night_action($1)', [0]);
+  let g = await gs(room);
+  assert(g.phase === 'night' && g.stage === 'call' && g.night_acted.includes('Seer'),
+    'satu role beraksi → malam masih berjalan');
+
+  await asUser(c);
+  await db.query('select submit_night_action($1)', [4]);
+  g = await gs(room);
+  assert(g.stage === 'call' && g.night_acted.includes('Guardian'),
+    'role lain tetap beraksi tanpa menunggu');
+
+  await asUser(a);
+  await db.query('select submit_night_action($1)', [1]);
+  assert((await gs(room)).stage === 'dawn', 'semua role beraksi → langsung fajar');
 }
 
 console.log(`\n${passed} lulus, ${failed} gagal`);

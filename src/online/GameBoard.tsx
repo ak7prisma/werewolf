@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Crosshair, Crown, LogOut, Moon, RotateCcw, Skull, Sun, Trash2, Vote } from 'lucide-react';
+import {
+  Crosshair,
+  Crown,
+  LogOut,
+  Moon,
+  RotateCcw,
+  Skull,
+  SkipForward,
+  Sun,
+  Trash2,
+  Vote,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -96,6 +107,7 @@ export function GameBoard() {
     deleteRoom,
     submitNightAction,
     submitVote,
+    submitDayReady,
     submitKingVote,
     submitHunterShot,
     playAgain,
@@ -315,6 +327,35 @@ export function GameBoard() {
           <p className="text-sm font-semibold text-muted-foreground">Menunggu pemain lain…</p>
         </Card>
       )}
+
+      {!finished &&
+        you.alive &&
+        game.room.round === 1 &&
+        (game.room.stage === 'discussion' || game.room.stage === 'vote') && (
+          <Card className="mb-4 w-full rounded-2xl px-4 py-4 neo-shadow">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm font-black tracking-wide uppercase">
+                <SkipForward className="size-4 text-accent" />
+                Lewati Siang
+              </span>
+              <span className="text-xs font-bold text-muted-foreground">
+                {game.dayReady}/{game.dayAlive} siap
+              </span>
+            </div>
+            <p className="mb-3 text-xs font-semibold text-muted-foreground">
+              Bila semua pemain setuju, siang langsung berakhir dan malam dimulai tanpa eliminasi.
+            </p>
+            {you.skipReady ? (
+              <Button block disabled>
+                Menunggu pemain lain…
+              </Button>
+            ) : (
+              <Button block disabled={busy} onClick={() => act(submitDayReady)}>
+                Lewati ke Malam
+              </Button>
+            )}
+          </Card>
+        )}
 
       {myRoll && (
         <Card className="mb-4 w-full rounded-2xl px-4 py-4 neo-shadow">

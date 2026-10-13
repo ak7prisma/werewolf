@@ -24,6 +24,7 @@ export interface OnlineContextValue {
   reload: () => Promise<void>;
   submitNightAction: (targetSeat: number | null) => Promise<void>;
   submitVote: (targetSeat: number | null) => Promise<void>;
+  submitDayReady: () => Promise<void>;
   submitKingVote: (targetSeat: number) => Promise<void>;
   submitHunterShot: (targetSeat: number) => Promise<void>;
   playAgain: () => Promise<void>;
