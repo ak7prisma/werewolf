@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 import { Card } from '@/components/ui/card';
 import { SectionTitle, Subtitle } from '@/components/SectionTitle';
-import { CATALOG_ROLES } from '@/data/roles';
+import { useRoles } from '@/data/RolesContext';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_STYLES = {
@@ -13,13 +13,22 @@ const CATEGORY_STYLES = {
 };
 
 export function CardsPage() {
+  const { roles, source } = useRoles();
+
   return (
     <section className="flex flex-col items-center">
       <SectionTitle>Katalog Kartu</SectionTitle>
       <Subtitle>Kenali semua peran sebelum malam tiba.</Subtitle>
+      {source === 'loading' ? (
+        <p className="mt-1 text-xs font-semibold text-muted-foreground">Memuat katalog…</p>
+      ) : source === 'fallback' ? (
+        <p className="mt-1 text-xs font-semibold text-muted-foreground">
+          Mode offline — memakai katalog bawaan.
+        </p>
+      ) : null}
 
       <div className="grid w-full grid-cols-2 gap-3">
-        {CATALOG_ROLES.map((role, index) => {
+        {roles.map((role, index) => {
           const Icon = role.icon;
           const style = CATEGORY_STYLES[role.category] ?? CATEGORY_STYLES.normal;
           return (

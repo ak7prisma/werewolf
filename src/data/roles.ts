@@ -27,7 +27,10 @@ export interface RoleDefinition {
 }
 
 /**
- * Master catalogue of every role available in Wolf Night.
+ * Built-in fallback catalogue and SQL seed for every role in Wolf Night.
+ * At runtime the app tries to load the same shape from the Supabase `roles`
+ * table (see `rolesRepository.ts`); this object is used when Supabase is not
+ * configured, unreachable or empty.
  * `icon` is a react-icons component, `short` is a terse label, `description` is
  * revealed to the player when they draw the card and `category` groups roles for
  * colour-coding in the catalogue:
@@ -148,12 +151,43 @@ export const ROLES = {
 
 export type RoleKey = keyof typeof ROLES;
 
-/** Stable ordering used across the app. */
-export const ROLE_NAMES = Object.keys(ROLES) as RoleKey[];
+/** Default ordering, used as the seed for the runtime registry. */
+export const DEFAULT_ROLE_NAMES = Object.keys(ROLES) as RoleKey[];
 
-/** Roles rendered in the catalogue page. */
-export const CATALOG_ROLES = ROLE_NAMES.map((key) => ROLES[key]);
+/**
+ * Runtime registry. It starts as the static catalogue above and can be
+ * hydrated with rows fetched from Supabase. Everything on the game logic path
+ * (deck building, win condition) reads from here **synchronously**, so the
+ * reducer and other pure helpers stay free of async data.
+ */
+let registry: Record<string, RoleDefinition> = { ...ROLES };
+let registryOrder: string[] = [...DEFAULT_ROLE_NAMES];
+
+/** Replace the runtime catalogue, e.g. with rows loaded from Supabase. */
+export function hydrateRoles(definitions: RoleDefinition[]): void {
+  if (definitions.length === 0) return;
+  registry = Object.fromEntries(definitions.map((definition) => [definition.name, definition]));
+  registryOrder = definitions.map((definition) => definition.name);
+}
+
+/** Restore the built-in catalogue (used when Supabase is unavailable). */
+export function resetRoles(): void {
+  registry = { ...ROLES };
+  registryOrder = [...DEFAULT_ROLE_NAMES];
+}
+
+/** Names of every registered role, in display order. Drives deck building. */
+export function getRoleNames(): string[] {
+  return registryOrder;
+}
+
+/** Roles rendered in the catalogue page, in display order. */
+export function getCatalogRoles(): RoleDefinition[] {
+  return registryOrder
+    .map((name) => registry[name])
+    .filter((role): role is RoleDefinition => Boolean(role));
+}
 
 export function getRole(name: string): RoleDefinition | undefined {
-  return (ROLES as Record<string, RoleDefinition>)[name];
+  return registry[name];
 }

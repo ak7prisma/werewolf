@@ -1,4 +1,4 @@
-import { ROLE_NAMES, getRole } from '@/data/roles';
+import { getRole, getRoleNames } from '@/data/roles';
 import { ACTIVE_ROLES, MIN_ACTIVE_ROLES, NIGHT_ROLE, type NightRole } from './constants';
 import type { Player } from './reducer';
 
@@ -53,7 +53,7 @@ function enforceWerewolf(deck: string[]): string[] {
  * Randomness happens here (outside the reducer) so the reducer stays pure.
  */
 export function createDeck(totalPlayers: number): string[] {
-  const deck = shuffle(ROLE_NAMES).slice(0, totalPlayers);
+  const deck = shuffle(getRoleNames()).slice(0, totalPlayers);
   return shuffle(enforceActiveRoles(enforceWerewolf(deck)));
 }
 
