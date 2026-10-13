@@ -36,6 +36,8 @@ create table if not exists public.game_state (
   pending_hunter     int,
   day_victim         int,
   king_tied          int[],
+  night_start_alive  int[],
+  day_report         text[],
   doctor_charges     int  not null default 0,
   deadline           timestamptz,
   winner             text,
@@ -43,6 +45,8 @@ create table if not exists public.game_state (
 );
 
 alter table public.game_state add column if not exists king_tied int[];
+alter table public.game_state add column if not exists night_start_alive int[];
+alter table public.game_state add column if not exists day_report text[];
 
 alter table public.game_state enable row level security;
 -- Sengaja tanpa policy: hanya RPC SECURITY DEFINER yang boleh mengakses.
@@ -252,7 +256,7 @@ begin
       where rp.room_id = p_room and pr.room_id = rp.room_id and pr.user_id = rp.user_id
         and rp.alive and pr.role = 'Werewolf';
 
-    update public.player_roles set role = 'Werewolf', revealed = true
+    update public.player_roles set role = 'Werewolf'
       where room_id = p_room and user_id = v_uid;
     update public.room_players set alive = true, hp = 1, transformed_from = 'Cursed'
       where room_id = p_room and seat = p_seat;
@@ -271,8 +275,6 @@ begin
   end if;
 
   update public.room_players set alive = false where room_id = p_room and seat = p_seat;
-  update public.player_roles set revealed = true
-    where room_id = p_room and user_id = v_uid;
 
   -- Orphan yang bapak angkatnya baru mati berubah jadi Werewolf.
   for v_orphan in
@@ -331,6 +333,8 @@ begin
 
   if v_winner is not null then
     update public.game_state set phase = 'finished', stage = 'finished', winner = v_winner where room_id = p_room;
+    -- Buka semua peran hanya saat permainan berakhir.
+    update public.player_roles set revealed = true where room_id = p_room;
     update public.rooms set status = 'finished', phase = 'finished', winner = v_winner, updated_at = now()
       where id = p_room;
     perform public._event(p_room, 'winner',
@@ -409,12 +413,45 @@ $$;
 
 create or replace function public._begin_day(p_room uuid)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_start   int[];
+  v_deaths  text[];
+  v_revives text[];
+  v_report  text[] := '{}';
+  v_name    text;
 begin
+  select coalesce(night_start_alive, '{}') into v_start
+    from public.game_state where room_id = p_room;
+
+  -- Hanya nama yang berubah status sejak awal malam — tanpa menyebut alasannya.
+  select array_agg(rp.display_name order by rp.seat) into v_deaths
+    from public.room_players rp
+    where rp.room_id = p_room and not rp.alive and rp.seat = any(v_start);
+
+  select array_agg(rp.display_name order by rp.seat) into v_revives
+    from public.room_players rp
+    where rp.room_id = p_room and rp.alive and not (rp.seat = any(v_start));
+
+  if v_deaths is not null then
+    foreach v_name in array v_deaths loop
+      v_report := array_append(v_report, format('%s tewas semalam.', v_name));
+    end loop;
+  end if;
+  if v_revives is not null then
+    foreach v_name in array v_revives loop
+      v_report := array_append(v_report, format('%s kembali bangkit.', v_name));
+    end loop;
+  end if;
+  if cardinality(v_report) = 0 then
+    v_report := array['Semalam sunyi, tidak ada yang tewas.'];
+  end if;
+
   update public.game_state
-    set phase = 'day', stage = 'discussion', deadline = now() + interval '90 seconds', day_victim = null
+    set phase = 'day', stage = 'discussion', deadline = now() + interval '90 seconds',
+        day_victim = null, day_report = v_report
     where room_id = p_room;
   update public.rooms set phase = 'day', stage = 'discussion', updated_at = now() where id = p_room;
-  perform public._event(p_room, 'day', 'Siang tiba. Diskusikan siapa Werewolf-nya!');
+  perform public._event(p_room, 'day', 'Siang tiba.');
 end;
 $$;
 
@@ -528,6 +565,8 @@ begin
         wolf_skip = v_gs.wolf_poisoned,
         wolf_poisoned = false,
         pending_hunter = null,
+        night_start_alive = public._alive_seats(p_room),
+        day_report = null,
         winner = null
     where room_id = p_room;
 
@@ -629,7 +668,8 @@ begin
         night_order = '{}', night_index = 0, wolf_target = null, guard_target = null,
         last_guard_target = null, guardian_self_used = false, seer_target = null,
         wolf_poisoned = false, wolf_skip = false, pending_hunter = null, day_victim = null,
-        king_tied = null, winner = null, deadline = null, resume_stage = null, updated_at = now();
+        king_tied = null, night_start_alive = null, day_report = null,
+        winner = null, deadline = null, resume_stage = null, updated_at = now();
 
   update public.rooms set status = 'playing', phase = 'night', stage = 'call', round = 1, winner = null, updated_at = now()
     where id = v_room.id;
@@ -938,7 +978,7 @@ begin
       'name', rp.display_name,
       'alive', rp.alive,
       'hp', rp.hp,
-      'transformedFrom', rp.transformed_from,
+      'transformedFrom', case when pr.revealed then rp.transformed_from else null end,
       'role', case when pr.revealed then pr.role else null end
     ) order by rp.seat), '[]'::jsonb) into v_players
   from public.room_players rp
@@ -961,6 +1001,8 @@ begin
     'candidates', to_jsonb(v_cand),
     'kingCandidates', case when v_gs.stage = 'king' then to_jsonb(coalesce(v_gs.king_tied, '{}'))
                            else '[]'::jsonb end,
+    'dayReport', case when v_gs.phase = 'day' then to_jsonb(coalesce(v_gs.day_report, '{}'))
+                      else '[]'::jsonb end,
     'players', v_players,
     'events', v_events,
     'you', jsonb_build_object(

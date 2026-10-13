@@ -142,6 +142,7 @@ console.log('\nSkenario 1: Seer malam pertama + warga menang');
 
   await tick(room, a);
   assert((await gs(room)).stage === 'discussion', 'tick fajar → siang diskusi');
+  assert((await gs(room)).day_report.length >= 1, 'berita pagi tersedia saat siang');
   await tick(room, a);
   assert((await gs(room)).stage === 'vote', 'tick diskusi → voting');
 
@@ -154,6 +155,8 @@ console.log('\nSkenario 1: Seer malam pertama + warga menang');
   await db.query('select game_tick()');
   assert((await one('select winner from rooms where id=$1', [room])).winner === 'village',
     'semua vote Werewolf → warga menang');
+  const revealed = await q('select revealed from player_roles where room_id=$1', [room]);
+  assert(revealed.every((r) => r.revealed === true), 'semua peran dibuka saat game selesai');
 }
 
 // --------------------------------------------------------------------------
@@ -214,6 +217,11 @@ console.log('\nSkenario 4: tembakan Hunter');
   let g = await gs(room);
   assert(g.stage === 'hunter', 'Hunter mati → menunggu tembakan');
   assert((await ply(room, 1)).alive === false, 'Hunter tewas');
+  const hunterRole = await one(
+    `select pr.revealed from player_roles pr
+     join room_players rp on pr.room_id=rp.room_id and pr.user_id=rp.user_id
+     where rp.room_id=$1 and rp.seat=1`, [room]);
+  assert(hunterRole.revealed === false, 'peran pemain mati belum dibuka (tetap rahasia)');
 
   await asUser(b);
   await db.query('select submit_hunter_shot($1)', [2]);

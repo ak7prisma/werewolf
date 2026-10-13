@@ -80,6 +80,7 @@ export interface GameView {
   call: string | null;
   candidates: number[];
   kingCandidates: number[];
+  dayReport: string[];
   players: GamePlayerView[];
   events: GameEventView[];
   you: {
