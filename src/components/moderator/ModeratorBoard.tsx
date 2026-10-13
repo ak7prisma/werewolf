@@ -99,7 +99,7 @@ export function ModeratorBoard() {
     const player = state.players[index];
     const cursedNote =
       player.role === 'Cursed'
-        ? ' Cursed yang digigit Werewolf akan berubah menjadi Werewolf baru, dan Werewolf lama tewas!'
+        ? ' Cursed yang digigit Werewolf akan berubah menjadi Werewolf baru, dan seluruh Werewolf lama tewas!'
         : '';
     const strongNote =
       player.role === 'Strong Villager' && player.hp > 1

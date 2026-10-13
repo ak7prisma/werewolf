@@ -138,17 +138,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!target || !target.alive) return state;
 
       if (cause === 'werewolf' && target.role === 'Cursed') {
-        const oldWolfIdx = players.findIndex(
+        const oldWolves = players.filter(
           (player) => player.role === 'Werewolf' && player.alive,
         );
+        oldWolves.forEach((wolf) => {
+          wolf.alive = false;
+        });
 
         target.role = 'Werewolf';
         target.transformedFrom = 'Cursed';
         target.hp = 1;
         target.alive = true;
 
-        const oldWolf = oldWolfIdx === -1 ? null : players[oldWolfIdx];
-        if (oldWolf) oldWolf.alive = false;
+        const names = oldWolves.map((wolf) => wolf.name);
+        const message =
+          names.length === 0
+            ? `${target.name} (Cursed) berubah menjadi Werewolf!`
+            : names.length === 1
+              ? `${target.name} (Cursed) menjadi Werewolf baru, dan ${names[0]} (Werewolf lama) langsung tewas!`
+              : `${target.name} (Cursed) menjadi Werewolf baru, dan seluruh Werewolf lama (${names.join(', ')}) langsung tewas!`;
 
         return {
           ...state,
@@ -156,9 +164,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           notification: {
             tone: 'danger',
             title: 'Kutukan Menyebar!',
-            message: oldWolf
-              ? `${target.name} (Cursed) menjadi Werewolf baru, dan ${oldWolf.name} (Werewolf lama) langsung tewas!`
-              : `${target.name} (Cursed) berubah menjadi Werewolf!`,
+            message,
           },
         };
       }
