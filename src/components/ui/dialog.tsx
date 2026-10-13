@@ -22,8 +22,9 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
 function DialogContent({
   className,
   children,
+  hideClose = false,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { hideClose?: boolean }) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -36,12 +37,14 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close
-          aria-label="Tutup"
-          className="absolute -top-3 -right-3 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground neo-border-2 outline-none transition hover:bg-accent hover:text-accent-foreground focus-visible:ring-4 focus-visible:ring-ring/60"
-        >
-          <X className="size-4" />
-        </DialogPrimitive.Close>
+        {hideClose ? null : (
+          <DialogPrimitive.Close
+            aria-label="Tutup"
+            className="absolute -top-3 -right-3 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground neo-border-2 outline-none transition hover:bg-accent hover:text-accent-foreground focus-visible:ring-4 focus-visible:ring-ring/60"
+          >
+            <X className="size-4" />
+          </DialogPrimitive.Close>
+        )}
       </DialogPrimitive.Content>
     </DialogPortal>
   );

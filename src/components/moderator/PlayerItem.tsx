@@ -1,7 +1,6 @@
-import { Heart, Skull, Stethoscope, Vote } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { getRole } from '@/data/roles';
 import { cn } from '@/lib/utils';
 import type { Player } from '@/game/reducer';
@@ -11,10 +10,12 @@ interface PlayerItemProps {
   index: number;
   isOrphanFather: boolean;
   orphanFatherName?: string | null;
-  canRevive: boolean;
-  onVote: (index: number) => void;
-  onKill: (index: number) => void;
-  onRevive: (index: number) => void;
+  selectable?: boolean;
+  selected?: boolean;
+  dimmed?: boolean;
+  highlighted?: boolean;
+  reveal?: 'threat' | 'safe' | null;
+  onSelect?: (index: number) => void;
 }
 
 export function PlayerItem({
@@ -22,25 +23,36 @@ export function PlayerItem({
   index,
   isOrphanFather,
   orphanFatherName,
-  canRevive,
-  onVote,
-  onKill,
-  onRevive,
+  selectable = false,
+  selected = false,
+  dimmed = false,
+  highlighted = false,
+  reveal = null,
+  onSelect,
 }: PlayerItemProps) {
   const roleData = getRole(player.role);
   if (!roleData) return null;
   const RoleIcon = roleData.icon;
   const isEvil = roleData.team === 'werewolf';
+  const interactive = selectable && onSelect !== undefined;
 
-  return (
-    <div
-      className={cn(
-        'flex h-full flex-col items-center gap-2 rounded-2xl px-3 py-3 text-center neo-border',
-        !player.alive && 'bg-[#17171f] opacity-60 neo-shadow-sm',
-        player.alive && isEvil && 'bg-[#1f1020] neo-shadow-primary',
-        player.alive && !isEvil && 'bg-secondary neo-shadow',
-      )}
-    >
+  const className = cn(
+    'flex h-full flex-col items-center gap-2 rounded-2xl px-3 py-3 text-center neo-border transition focus-visible:outline-none',
+    !player.alive && 'bg-[#17171f] opacity-60 neo-shadow-sm',
+    player.alive && isEvil && 'bg-[#1f1020] neo-shadow-primary',
+    player.alive && !isEvil && 'bg-secondary neo-shadow',
+    dimmed && !highlighted && 'opacity-40 grayscale',
+    interactive && 'cursor-pointer',
+    interactive && !selected && 'hover:-translate-y-0.5 hover:ring-4 hover:ring-accent/70',
+    interactive && 'active:scale-[0.97] focus-visible:ring-4 focus-visible:ring-accent',
+    selected && !reveal && 'ring-4 ring-accent',
+    highlighted && 'scale-105 ring-4 ring-accent',
+    reveal === 'threat' && 'bg-[#3a0d13] ring-4 ring-primary neo-shadow-primary',
+    reveal === 'safe' && 'ring-4 ring-success',
+  );
+
+  const content = (
+    <>
       <span
         className={cn(
           'grid size-11 shrink-0 place-items-center rounded-xl neo-border-2',
@@ -75,61 +87,19 @@ export function PlayerItem({
         ) : null}
         {isOrphanFather ? <Badge variant="success">Bapak Angkat</Badge> : null}
         {orphanFatherName ? <Badge variant="danger">Bapak: {orphanFatherName}</Badge> : null}
+        {reveal === 'threat' ? <Badge variant="danger">ANCAMAN</Badge> : null}
+        {reveal === 'safe' ? <Badge variant="success">AMAN</Badge> : null}
       </div>
-
-      {player.alive ? (
-        isEvil ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            block
-            className="mt-auto"
-            title="Werewolf hanya bisa dieliminasi lewat voting warga"
-            onClick={() => onVote(index)}
-          >
-            <Vote />
-            Vote
-          </Button>
-        ) : (
-          <div className="mt-auto grid w-full grid-cols-2 gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              block
-              title="Eliminasi lewat voting warga"
-              onClick={() => onVote(index)}
-            >
-              <Vote />
-              Vote
-            </Button>
-            <Button
-              size="sm"
-              variant="default"
-              block
-              title="Bunuh oleh gigitan Werewolf"
-              onClick={() => onKill(index)}
-            >
-              <Skull />
-              Bunuh
-            </Button>
-          </div>
-        )
-      ) : canRevive ? (
-        <Button
-          size="sm"
-          variant="success"
-          block
-          className="mt-auto"
-          onClick={() => onRevive(index)}
-        >
-          <Stethoscope />
-          Hidupkan
-        </Button>
-      ) : (
-        <Badge variant="muted" className="mt-auto whitespace-nowrap">
-          Mati
-        </Badge>
-      )}
-    </div>
+    </>
   );
+
+  if (interactive) {
+    return (
+      <button type="button" onClick={() => onSelect?.(index)} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }

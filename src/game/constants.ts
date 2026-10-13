@@ -21,7 +21,38 @@ export type DrawStep = (typeof DRAW_STEP)[keyof typeof DRAW_STEP];
 export const GAME_PHASE = {
   SETUP: 'setup',
   DRAW: 'draw',
-  MODERATOR: 'moderator',
+  NIGHT: 'night',
+  DAY: 'day',
 } as const;
 
 export type GamePhase = (typeof GAME_PHASE)[keyof typeof GAME_PHASE];
+
+/** Roles that the moderator calls one-by-one during the night. */
+export const NIGHT_ROLE = {
+  WEREWOLF: 'Werewolf',
+  GUARDIAN: 'Guardian',
+  SEER: 'Seer',
+  DOCTOR: 'Doctor',
+  ORPHAN: 'Orphan',
+  DOPPELGANGER: 'Doppelganger',
+} as const;
+
+export type NightRole = (typeof NIGHT_ROLE)[keyof typeof NIGHT_ROLE];
+
+/** Sub-stages of a single night. */
+export const NIGHT_STAGE = {
+  INTRO: 'intro',
+  CALL: 'call',
+  DAWN: 'dawn',
+} as const;
+
+export type NightStage = (typeof NIGHT_STAGE)[keyof typeof NIGHT_STAGE];
+
+/** Sub-stages of a single day. */
+export const DAY_STAGE = {
+  DISCUSSION: 'discussion',
+  VOTE: 'vote',
+  RESULT: 'result',
+} as const;
+
+export type DayStage = (typeof DAY_STAGE)[keyof typeof DAY_STAGE];

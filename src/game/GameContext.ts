@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 
-import type { GameState, KillCause, Player } from './reducer';
+import type { GameState, Player } from './reducer';
+import type { NightRole } from './constants';
 
 export interface StartResult {
   ok: boolean;
@@ -11,23 +12,28 @@ export type Winner = 'village' | 'werewolf';
 
 export interface GameContextValue {
   state: GameState;
-  orphanIndex: number;
-  orphan: Player | null;
-  orphanFatherPending: boolean;
   king: Player | null;
-  canRevive: boolean;
   doppelgangerIndex: number;
   doppelganger: Player | null;
   canCopyRole: boolean;
+  /** Role the moderator is currently calling, or null outside a night call. */
+  currentNightRole: NightRole | null;
   winner: Winner | null;
   startGame: (rawTotal: string) => StartResult;
   dealCards: (name: string) => StartResult;
   pickCard: (index: number) => void;
   nextPlayer: () => void;
-  startModerator: () => void;
-  killPlayer: (index: number, cause: KillCause) => void;
-  reviveWithDoctor: (index: number) => void;
-  setOrphanFather: (fatherIndex: number) => void;
+  startNight: () => void;
+  nightBeginCall: () => void;
+  nightSelect: (index: number) => void;
+  nightConfirm: () => void;
+  nightSkip: () => void;
+  nightToDay: () => void;
+  dayBeginVote: () => void;
+  daySelect: (index: number) => void;
+  dayConfirm: () => void;
+  daySkip: () => void;
+  shootWithHunter: (targetIndex: number) => void;
   copyRoleWithDoppelganger: (targetIndex: number) => void;
   dismissNotification: () => void;
   resetGame: () => void;

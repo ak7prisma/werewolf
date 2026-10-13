@@ -2,9 +2,15 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import { GameContext, type StartResult, type Winner } from './GameContext';
-import { gameReducer, initialGameState, type KillCause } from './reducer';
-import { createDeck } from './logic';
-import { GAME_PHASE, MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { gameReducer, initialGameState } from './reducer';
+import { buildNightOrder, createDeck } from './logic';
+import {
+  GAME_PHASE,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  NIGHT_STAGE,
+  type NightRole,
+} from './constants';
 import { getRole } from '@/data/roles';
 import { useAudio } from '@/audio/AudioPlayerContext';
 
@@ -41,17 +47,32 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [],
   );
   const nextPlayer = useCallback(() => dispatch({ type: 'NEXT_PLAYER' }), []);
-  const startModerator = useCallback(() => dispatch({ type: 'START_MODERATOR' }), []);
-  const killPlayer = useCallback(
-    (index: number, cause: KillCause) => dispatch({ type: 'KILL', payload: { index, cause } }),
+
+  const startNight = useCallback(() => {
+    const round = state.phase === GAME_PHASE.DRAW ? 1 : state.round + 1;
+    const order = buildNightOrder(state.players, state.doctorCharges, round);
+    dispatch({ type: 'START_NIGHT', payload: { order } });
+  }, [state.players, state.doctorCharges, state.phase, state.round]);
+
+  const nightBeginCall = useCallback(() => dispatch({ type: 'NIGHT_BEGIN_CALL' }), []);
+  const nightSelect = useCallback(
+    (index: number) => dispatch({ type: 'NIGHT_SELECT', payload: { index } }),
     [],
   );
-  const reviveWithDoctor = useCallback(
-    (index: number) => dispatch({ type: 'DOCTOR_REVIVE', payload: { index } }),
+  const nightConfirm = useCallback(() => dispatch({ type: 'NIGHT_CONFIRM' }), []);
+  const nightSkip = useCallback(() => dispatch({ type: 'NIGHT_SKIP' }), []);
+  const nightToDay = useCallback(() => dispatch({ type: 'NIGHT_TO_DAY' }), []);
+
+  const dayBeginVote = useCallback(() => dispatch({ type: 'DAY_BEGIN_VOTE' }), []);
+  const daySelect = useCallback(
+    (index: number) => dispatch({ type: 'DAY_SELECT', payload: { index } }),
     [],
   );
-  const setOrphanFather = useCallback(
-    (fatherIndex: number) => dispatch({ type: 'SET_ORPHAN_FATHER', payload: { fatherIndex } }),
+  const dayConfirm = useCallback(() => dispatch({ type: 'DAY_CONFIRM' }), []);
+  const daySkip = useCallback(() => dispatch({ type: 'DAY_SKIP' }), []);
+
+  const shootWithHunter = useCallback(
+    (targetIndex: number) => dispatch({ type: 'HUNTER_SHOOT', payload: { targetIndex } }),
     [],
   );
   const copyRoleWithDoppelganger = useCallback(
@@ -62,18 +83,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
 
   const derived = useMemo(() => {
-    const orphanIndex = state.players.findIndex((player) => player.role === 'Orphan');
-    const orphan = orphanIndex === -1 ? null : state.players[orphanIndex];
-    const orphanFatherPending =
-      orphan !== null && orphan.orphanFather === null && orphan.alive;
     const king = state.players.find((player) => player.role === 'King' && player.alive) ?? null;
-    const canRevive = state.hasDoctor && state.doctorCharges > 0;
 
     const doppelgangerIndex = state.players.findIndex((player) => player.role === 'Doppelganger');
     const doppelganger = doppelgangerIndex === -1 ? null : state.players[doppelgangerIndex];
     const canCopyRole =
       doppelgangerIndex !== -1 &&
       state.players.some((player, index) => !player.alive && index !== doppelgangerIndex);
+
+    const currentNightRole: NightRole | null =
+      state.phase === GAME_PHASE.NIGHT && state.nightStage === NIGHT_STAGE.CALL
+        ? (state.nightOrder[state.nightIndex] ?? null)
+        : null;
 
     const alivePlayers = state.players.filter((player) => player.alive);
     const aliveWolves = alivePlayers.filter(
@@ -82,23 +103,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const aliveVillage = alivePlayers.length - aliveWolves;
 
     let winner: Winner | null = null;
-    if (state.phase === GAME_PHASE.MODERATOR && state.players.length > 0) {
+    if (
+      (state.phase === GAME_PHASE.NIGHT || state.phase === GAME_PHASE.DAY) &&
+      state.players.length > 0 &&
+      state.pendingHunter === null
+    ) {
       if (aliveWolves === 0) winner = 'village';
       else if (aliveWolves >= aliveVillage) winner = 'werewolf';
     }
 
-    return {
-      orphanIndex,
-      orphan,
-      orphanFatherPending,
-      king,
-      canRevive,
-      doppelgangerIndex,
-      doppelganger,
-      canCopyRole,
-      winner,
-    };
-  }, [state.players, state.hasDoctor, state.doctorCharges, state.phase]);
+    return { king, doppelgangerIndex, doppelganger, canCopyRole, currentNightRole, winner };
+  }, [state.players, state.phase, state.nightStage, state.nightOrder, state.nightIndex, state.pendingHunter]);
 
   const playedWinnerRef = useRef<Winner | null>(null);
 
@@ -118,10 +133,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dealCards,
       pickCard,
       nextPlayer,
-      startModerator,
-      killPlayer,
-      reviveWithDoctor,
-      setOrphanFather,
+      startNight,
+      nightBeginCall,
+      nightSelect,
+      nightConfirm,
+      nightSkip,
+      nightToDay,
+      dayBeginVote,
+      daySelect,
+      dayConfirm,
+      daySkip,
+      shootWithHunter,
       copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,
@@ -133,10 +155,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dealCards,
       pickCard,
       nextPlayer,
-      startModerator,
-      killPlayer,
-      reviveWithDoctor,
-      setOrphanFather,
+      startNight,
+      nightBeginCall,
+      nightSelect,
+      nightConfirm,
+      nightSkip,
+      nightToDay,
+      dayBeginVote,
+      daySelect,
+      dayConfirm,
+      daySkip,
+      shootWithHunter,
       copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,

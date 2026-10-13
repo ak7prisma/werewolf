@@ -14,7 +14,7 @@ import { DRAW_STEP } from '@/game/constants';
 const transition = { duration: 0.25 };
 
 export function DrawStep() {
-  const { state, dealCards, pickCard, nextPlayer, startModerator } = useGame();
+  const { state, dealCards, pickCard, nextPlayer, startNight } = useGame();
   const { alert } = useModal();
 
   async function handleDeal(name: string) {
@@ -95,8 +95,8 @@ export function DrawStep() {
             <Smartphone className="size-4" />
             Serahkan HP ke moderator sekarang. Jangan biarkan pemain lain melihat peran mereka!
           </Alert>
-          <Button block className="mt-1" onClick={startModerator}>
-            Lanjut ke Papan Moderator
+          <Button block className="mt-1" onClick={startNight}>
+            Mulai Malam Pertama
           </Button>
         </motion.section>
       ) : null}

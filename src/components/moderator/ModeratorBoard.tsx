@@ -1,155 +1,98 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, Skull, TriangleAlert, Trophy } from 'lucide-react';
+import { RotateCcw, Skull, Trophy } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { SectionTitle } from '@/components/SectionTitle';
 import { PlayerItem } from './PlayerItem';
-import { OrphanZone } from './OrphanZone';
-import { DoppelgangerZone } from './DoppelgangerZone';
+import { NightDialog } from './NightDialog';
+import { DayDialog } from './DayDialog';
+import { HunterShotDialog } from './HunterShotDialog';
 import { DoctorStatus } from './DoctorStatus';
 import { KingZone } from './KingZone';
 import { useGame } from '@/game/GameContext';
 import { useModal } from '@/components/ModalContext';
-import type { GameNotification } from '@/game/reducer';
+import { DAY_STAGE, GAME_PHASE, NIGHT_STAGE } from '@/game/constants';
+import { isThreatRole, nightCandidates } from '@/game/logic';
 
 export function ModeratorBoard() {
   const {
     state,
-    killPlayer,
-    reviveWithDoctor,
-    setOrphanFather,
-    resetGame,
-    orphan,
-    orphanFatherPending,
-    king,
-    canRevive,
-    doppelganger,
-    doppelgangerIndex,
-    canCopyRole,
-    copyRoleWithDoppelganger,
     winner,
-    dismissNotification,
+    king,
+    currentNightRole,
+    nightSelect,
+    nightConfirm,
+    daySelect,
+    shootWithHunter,
+    resetGame,
   } = useGame();
-  const { confirm, alert } = useModal();
+  const { confirm } = useModal();
 
-  const orphanZoneRef = useRef<HTMLDivElement | null>(null);
-  const warnedRef = useRef(false);
-  const handledNotificationRef = useRef<GameNotification | null>(null);
-  const [highlight, setHighlight] = useState(false);
+  const isNightCall =
+    state.phase === GAME_PHASE.NIGHT &&
+    state.nightStage === NIGHT_STAGE.CALL &&
+    currentNightRole !== null;
+  const isVote = state.phase === GAME_PHASE.DAY && state.dayStage === DAY_STAGE.VOTE;
+  const selecting = isNightCall || isVote;
 
-  const focusOrphanZone = useCallback(() => {
-    orphanZoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setHighlight(true);
-    setTimeout(() => setHighlight(false), 4000);
+  const [flash, setFlash] = useState<number | null>(null);
+  const flashTimer = useRef<number | null>(null);
+
+  const flashCard = useCallback((index: number) => {
+    setFlash(index);
+    if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 550);
   }, []);
 
-  const warnOrphanFather = useCallback(async () => {
-    if (!orphan) return;
-    await alert({
-      title: 'Wajib Pilih Bapak Angkat',
-      description: `${orphan.name} (Orphan) belum memilih bapak angkat! Pilih dulu sebelum melanjutkan permainan atau membunuh pemain.`,
-      confirmText: 'Pilih Sekarang',
-      tone: 'warning',
-    });
-    focusOrphanZone();
-  }, [alert, orphan, focusOrphanZone]);
+  useEffect(
+    () => () => {
+      if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+    },
+    [],
+  );
 
-  useEffect(() => {
-    if (!warnedRef.current && orphanFatherPending) {
-      warnedRef.current = true;
-      warnOrphanFather();
+  const candidateSet = useMemo(() => {
+    if (isNightCall && currentNightRole) {
+      if (currentNightRole === 'Werewolf' && state.wolfSkipThisNight) {
+        return new Set<number>();
+      }
+      return new Set(
+        nightCandidates(currentNightRole, state.players, {
+          lastGuardTarget: state.lastGuardTarget,
+          guardianSelfUsed: state.guardianSelfUsed,
+        }),
+      );
     }
-  }, [orphanFatherPending, warnOrphanFather]);
-
-  useEffect(() => {
-    const notification = state.notification;
-    if (!notification || handledNotificationRef.current === notification) return;
-    handledNotificationRef.current = notification;
-    alert({ title: notification.title, description: notification.message, tone: notification.tone });
-    dismissNotification();
-  }, [state.notification, alert, dismissNotification]);
-
-  async function handleVote(index: number) {
-    if (orphanFatherPending) {
-      await warnOrphanFather();
-      return;
+    if (isVote) {
+      const alive = state.players
+        .map((player, index) => (player.alive ? index : -1))
+        .filter((index) => index >= 0);
+      return new Set(alive);
     }
-    const player = state.players[index];
-    const strongNote =
-      player.role === 'Strong Villager' && player.hp > 1
-        ? ` ${player.name} masih punya ${player.hp} nyawa.`
-        : '';
-    const ok = await confirm({
-      title: 'Eliminasi lewat Vote?',
-      description: `${player.name} akan dieliminasi lewat hasil voting warga.${strongNote}`,
-      confirmText: 'Eliminasi',
-      cancelText: 'Batal',
-      tone: 'warning',
-    });
-    if (ok) killPlayer(index, 'vote');
-  }
+    return new Set<number>();
+  }, [
+    isNightCall,
+    currentNightRole,
+    isVote,
+    state.players,
+    state.wolfSkipThisNight,
+    state.lastGuardTarget,
+    state.guardianSelfUsed,
+  ]);
 
-  async function handleKill(index: number) {
-    if (orphanFatherPending) {
-      await warnOrphanFather();
-      return;
+  function handleSelect(index: number) {
+    if (!candidateSet.has(index)) return;
+    flashCard(index);
+    if (isNightCall && currentNightRole) {
+      nightSelect(index);
+      if (currentNightRole !== 'Werewolf' && currentNightRole !== 'Seer') {
+        nightConfirm();
+      }
+    } else if (isVote) {
+      daySelect(index);
     }
-    const player = state.players[index];
-    const cursedNote =
-      player.role === 'Cursed'
-        ? ' Cursed yang digigit Werewolf akan berubah menjadi Werewolf baru, dan seluruh Werewolf lama tewas!'
-        : '';
-    const strongNote =
-      player.role === 'Strong Villager' && player.hp > 1
-        ? ` ${player.name} masih punya ${player.hp} nyawa.`
-        : '';
-    const ok = await confirm({
-      title: 'Bunuh oleh Werewolf?',
-      description: `${player.name} akan dimangsa Werewolf.${strongNote}${cursedNote}`,
-      confirmText: 'Bunuh',
-      cancelText: 'Batal',
-      tone: 'danger',
-    });
-    if (ok) killPlayer(index, 'werewolf');
-  }
-
-  async function handleRevive(index: number) {
-    const player = state.players[index];
-    const ok = await confirm({
-      title: 'Hidupkan dengan Doctor?',
-      description: `${player.name} akan dihidupkan menggunakan 1-satunya kesempatan Doctor.`,
-      confirmText: 'Hidupkan',
-      cancelText: 'Batal',
-      tone: 'success',
-    });
-    if (ok) reviveWithDoctor(index);
-  }
-
-  async function handleSetOrphanFather(fatherIndex: number) {
-    if (!orphan) return;
-    const ok = await confirm({
-      title: 'Tetapkan Bapak Angkat?',
-      description: `${orphan.name} akan menjadikan ${state.players[fatherIndex].name} sebagai bapak angkat.`,
-      confirmText: 'Tetapkan',
-      cancelText: 'Batal',
-      tone: 'info',
-    });
-    if (ok) setOrphanFather(fatherIndex);
-  }
-
-  async function handleCopyRole(targetIndex: number) {
-    if (!doppelganger) return;
-    const target = state.players[targetIndex];
-    const ok = await confirm({
-      title: 'Ambil Role Orang Mati?',
-      description: `${doppelganger.name} (Doppelganger) akan mengambil peran ${target.role} milik ${target.name}. Tindakan ini hanya bisa dilakukan sekali.`,
-      confirmText: 'Ambil Role',
-      cancelText: 'Batal',
-      tone: 'info',
-    });
-    if (ok) copyRoleWithDoppelganger(targetIndex);
   }
 
   async function handleReset() {
@@ -163,9 +106,6 @@ export function ModeratorBoard() {
     if (ok) resetGame();
   }
 
-  const orphanZone = orphan !== null && orphan.orphanFather === null ? orphan : null;
-  const doppelgangerZone = canCopyRole && doppelganger !== null ? doppelganger : null;
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -175,10 +115,9 @@ export function ModeratorBoard() {
       className="flex flex-col items-center"
     >
       <SectionTitle>Papan Moderator</SectionTitle>
-      <Alert variant="warning" className="mb-4 inline-flex items-center gap-2 text-center">
-        <TriangleAlert className="size-4" />
-        Rahasia! Hanya moderator yang boleh melihat halaman ini.
-      </Alert>
+
+      {!winner && state.phase === GAME_PHASE.NIGHT ? <NightDialog /> : null}
+      {!winner && state.phase === GAME_PHASE.DAY ? <DayDialog /> : null}
 
       {winner ? (
         <motion.div
@@ -208,25 +147,10 @@ export function ModeratorBoard() {
       <div className="w-full">
         {state.hasDoctor ? <DoctorStatus charges={state.doctorCharges} /> : null}
 
-        {orphanZone ? (
-          <div ref={orphanZoneRef}>
-            <OrphanZone
-              orphanIndex={state.players.indexOf(orphanZone)}
-              orphanName={orphanZone.name}
-              players={state.players}
-              highlight={highlight}
-              onConfirm={handleSetOrphanFather}
-            />
-          </div>
-        ) : null}
-
-        {doppelgangerZone ? (
-          <DoppelgangerZone
-            doppelgangerIndex={doppelgangerIndex}
-            doppelgangerName={doppelgangerZone.name}
-            players={state.players}
-            onConfirm={handleCopyRole}
-          />
+        {state.wolfPoisoned ? (
+          <Alert variant="danger" className="mb-2 text-center">
+            Werewolf keracunan! Serangan malam berikutnya akan gagal.
+          </Alert>
         ) : null}
 
         <div className="mt-2 mb-1.5 grid grid-cols-2 gap-2.5">
@@ -243,10 +167,18 @@ export function ModeratorBoard() {
                   ? state.players[player.orphanFather]?.name
                   : null
               }
-              canRevive={canRevive}
-              onVote={handleVote}
-              onKill={handleKill}
-              onRevive={handleRevive}
+              selectable={selecting && candidateSet.has(index)}
+              selected={selecting && state.selection === index}
+              dimmed={selecting && !candidateSet.has(index)}
+              highlighted={flash === index}
+              reveal={
+                isNightCall && currentNightRole === 'Seer' && state.selection === index
+                  ? isThreatRole(player.role)
+                    ? 'threat'
+                    : 'safe'
+                  : null
+              }
+              onSelect={handleSelect}
             />
           ))}
         </div>
@@ -258,6 +190,15 @@ export function ModeratorBoard() {
         <RotateCcw />
         Mulai Permainan Baru
       </Button>
+
+      {state.pendingHunter !== null ? (
+        <HunterShotDialog
+          hunterIndex={state.pendingHunter}
+          hunterName={state.players[state.pendingHunter]?.name ?? 'Hunter'}
+          players={state.players}
+          onConfirm={shootWithHunter}
+        />
+      ) : null}
     </motion.section>
   );
 }

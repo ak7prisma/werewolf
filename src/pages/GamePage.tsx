@@ -13,7 +13,9 @@ export function GamePage() {
     <AnimatePresence mode="wait">
       {state.phase === GAME_PHASE.SETUP ? <SetupStep key="setup" /> : null}
       {state.phase === GAME_PHASE.DRAW ? <DrawStep key="draw" /> : null}
-      {state.phase === GAME_PHASE.MODERATOR ? <ModeratorBoard key="moderator" /> : null}
+      {state.phase === GAME_PHASE.NIGHT || state.phase === GAME_PHASE.DAY ? (
+        <ModeratorBoard key="moderator" />
+      ) : null}
     </AnimatePresence>
   );
 }
