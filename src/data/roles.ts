@@ -96,7 +96,7 @@ export const ROLES = {
     icon: GiBlood,
     short: 'Terkutuk.',
     description:
-      'Kamu terkutuk. Gigitan Werewolf tak membunuhmu - justru mengubahmu menjadi salah satu dari mereka.',
+      'Kamu terkutuk. Jika digigit Werewolf, kamu tidak mati - kamu justru menjadi Werewolf baru, dan Werewolf lama langsung tewas!',
     team: 'village',
     category: 'variable',
   },

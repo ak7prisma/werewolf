@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, TriangleAlert } from 'lucide-react';
+import { RotateCcw, Skull, TriangleAlert, Trophy } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -29,6 +29,7 @@ export function ModeratorBoard() {
     doppelgangerIndex,
     canCopyRole,
     copyRoleWithDoppelganger,
+    winner,
     dismissNotification,
   } = useGame();
   const { confirm, alert } = useModal();
@@ -70,7 +71,7 @@ export function ModeratorBoard() {
     dismissNotification();
   }, [state.notification, alert, dismissNotification]);
 
-  async function handleKill(index: number) {
+  async function handleVote(index: number) {
     if (orphanFatherPending) {
       await warnOrphanFather();
       return;
@@ -81,13 +82,37 @@ export function ModeratorBoard() {
         ? ` ${player.name} masih punya ${player.hp} nyawa.`
         : '';
     const ok = await confirm({
-      title: 'Bunuh Pemain?',
-      description: `${player.name} akan dibunuh.${strongNote}`,
+      title: 'Eliminasi lewat Vote?',
+      description: `${player.name} akan dieliminasi lewat hasil voting warga.${strongNote}`,
+      confirmText: 'Eliminasi',
+      cancelText: 'Batal',
+      tone: 'warning',
+    });
+    if (ok) killPlayer(index, 'vote');
+  }
+
+  async function handleKill(index: number) {
+    if (orphanFatherPending) {
+      await warnOrphanFather();
+      return;
+    }
+    const player = state.players[index];
+    const cursedNote =
+      player.role === 'Cursed'
+        ? ' Cursed yang digigit Werewolf akan berubah menjadi Werewolf baru, dan Werewolf lama tewas!'
+        : '';
+    const strongNote =
+      player.role === 'Strong Villager' && player.hp > 1
+        ? ` ${player.name} masih punya ${player.hp} nyawa.`
+        : '';
+    const ok = await confirm({
+      title: 'Bunuh oleh Werewolf?',
+      description: `${player.name} akan dimangsa Werewolf.${strongNote}${cursedNote}`,
       confirmText: 'Bunuh',
       cancelText: 'Batal',
       tone: 'danger',
     });
-    if (ok) killPlayer(index);
+    if (ok) killPlayer(index, 'werewolf');
   }
 
   async function handleRevive(index: number) {
@@ -155,6 +180,31 @@ export function ModeratorBoard() {
         Rahasia! Hanya moderator yang boleh melihat halaman ini.
       </Alert>
 
+      {winner ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+          className={
+            winner === 'werewolf'
+              ? 'mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-sm font-black tracking-wide text-primary-foreground uppercase neo-border neo-shadow-lg'
+              : 'mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-success px-4 py-4 text-sm font-black tracking-wide text-success-foreground uppercase neo-border neo-shadow-lg'
+          }
+        >
+          {winner === 'werewolf' ? (
+            <>
+              <Skull className="size-6" />
+              Werewolf Menang!
+            </>
+          ) : (
+            <>
+              <Trophy className="size-6" />
+              Warga Menang!
+            </>
+          )}
+        </motion.div>
+      ) : null}
+
       <div className="w-full">
         {state.hasDoctor ? <DoctorStatus charges={state.doctorCharges} /> : null}
 
@@ -194,6 +244,7 @@ export function ModeratorBoard() {
                   : null
               }
               canRevive={canRevive}
+              onVote={handleVote}
               onKill={handleKill}
               onRevive={handleRevive}
             />

@@ -1,11 +1,13 @@
 import { createContext, useContext } from 'react';
 
-import type { GameState, Player } from './reducer';
+import type { GameState, KillCause, Player } from './reducer';
 
 export interface StartResult {
   ok: boolean;
   error?: string;
 }
+
+export type Winner = 'village' | 'werewolf';
 
 export interface GameContextValue {
   state: GameState;
@@ -17,12 +19,13 @@ export interface GameContextValue {
   doppelgangerIndex: number;
   doppelganger: Player | null;
   canCopyRole: boolean;
+  winner: Winner | null;
   startGame: (rawTotal: string) => StartResult;
   dealCards: (name: string) => StartResult;
   pickCard: (index: number) => void;
   nextPlayer: () => void;
   startModerator: () => void;
-  killPlayer: (index: number) => void;
+  killPlayer: (index: number, cause: KillCause) => void;
   reviveWithDoctor: (index: number) => void;
   setOrphanFather: (fatherIndex: number) => void;
   copyRoleWithDoppelganger: (targetIndex: number) => void;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { DealCard } from './DealCard';
+import { useAudio } from '@/audio/AudioPlayerContext';
 
 const SHUFFLE_DURATION = 2600;
 const RIFLE_INTERVAL = 320;
@@ -20,6 +21,7 @@ export function CardFan({ roles, resolveRole, onPick, shuffle = false }: CardFan
   const [spread, setSpread] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [label, setLabel] = useState(shuffle ? 'Mengocok kartu…' : 'Kartu siap!');
+  const { playCardSfx } = useAudio();
 
   useEffect(() => {
     const delay = shuffle ? SHUFFLE_DURATION : 150;
@@ -41,6 +43,7 @@ export function CardFan({ roles, resolveRole, onPick, shuffle = false }: CardFan
 
   function handleSelect(index: number) {
     if (picked !== null || shuffling) return;
+    playCardSfx();
     setPicked(index);
     setShuffling(false);
     setTimeout(() => onPick(index), REVEAL_DELAY);

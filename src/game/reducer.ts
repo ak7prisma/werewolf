@@ -11,6 +11,9 @@ export interface Player {
 
 export type NotificationTone = 'success' | 'danger' | 'info' | 'warning';
 
+/** How a player is being eliminated: village vote, or a werewolf attack. */
+export type KillCause = 'vote' | 'werewolf';
+
 export interface GameNotification {
   tone: NotificationTone;
   title: string;
@@ -38,7 +41,7 @@ export type GameAction =
   | { type: 'PICK'; payload: { index: number } }
   | { type: 'NEXT_PLAYER' }
   | { type: 'START_MODERATOR' }
-  | { type: 'KILL'; payload: { index: number } }
+  | { type: 'KILL'; payload: { index: number; cause: KillCause } }
   | { type: 'DOCTOR_REVIVE'; payload: { index: number } }
   | { type: 'SET_ORPHAN_FATHER'; payload: { fatherIndex: number } }
   | { type: 'DOPPELGANGER_COPY'; payload: { targetIndex: number } }
@@ -150,10 +153,36 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'KILL': {
-      const { index } = action.payload;
+      const { index, cause } = action.payload;
       const players = clonePlayers(state.players);
       const target = players[index];
       if (!target || !target.alive) return state;
+
+      if (cause === 'werewolf' && target.role === 'Cursed') {
+        const oldWolfIdx = players.findIndex(
+          (player) => player.role === 'Werewolf' && player.alive,
+        );
+
+        target.role = 'Werewolf';
+        target.transformedFrom = 'Cursed';
+        target.hp = 1;
+        target.alive = true;
+
+        const oldWolf = oldWolfIdx === -1 ? null : players[oldWolfIdx];
+        if (oldWolf) oldWolf.alive = false;
+
+        return {
+          ...state,
+          players,
+          notification: {
+            tone: 'danger',
+            title: 'Kutukan Menyebar!',
+            message: oldWolf
+              ? `${target.name} (Cursed) menjadi Werewolf baru, dan ${oldWolf.name} (Werewolf lama) langsung tewas!`
+              : `${target.name} (Cursed) berubah menjadi Werewolf!`,
+          },
+        };
+      }
 
       if (target.role === 'Strong Villager' && target.hp > 1) {
         target.hp -= 1;

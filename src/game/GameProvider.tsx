@@ -1,13 +1,16 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ReactNode } from 'react';
 
-import { GameContext, type StartResult } from './GameContext';
-import { gameReducer, initialGameState } from './reducer';
+import { GameContext, type StartResult, type Winner } from './GameContext';
+import { gameReducer, initialGameState, type KillCause } from './reducer';
 import { createDeck } from './logic';
-import { MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { GAME_PHASE, MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { getRole } from '@/data/roles';
+import { useAudio } from '@/audio/AudioPlayerContext';
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
+  const { playVillageWinSfx, playWerewolfWinSfx } = useAudio();
 
   const startGame = useCallback((rawTotal: string): StartResult => {
     const totalPlayers = Number.parseInt(rawTotal, 10);
@@ -40,7 +43,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const nextPlayer = useCallback(() => dispatch({ type: 'NEXT_PLAYER' }), []);
   const startModerator = useCallback(() => dispatch({ type: 'START_MODERATOR' }), []);
   const killPlayer = useCallback(
-    (index: number) => dispatch({ type: 'KILL', payload: { index } }),
+    (index: number, cause: KillCause) => dispatch({ type: 'KILL', payload: { index, cause } }),
     [],
   );
   const reviveWithDoctor = useCallback(
@@ -72,6 +75,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       doppelgangerIndex !== -1 &&
       state.players.some((player, index) => !player.alive && index !== doppelgangerIndex);
 
+    const alivePlayers = state.players.filter((player) => player.alive);
+    const aliveWolves = alivePlayers.filter(
+      (player) => getRole(player.role)?.team === 'werewolf',
+    ).length;
+    const aliveVillage = alivePlayers.length - aliveWolves;
+
+    let winner: Winner | null = null;
+    if (state.phase === GAME_PHASE.MODERATOR && state.players.length > 0) {
+      if (aliveWolves === 0) winner = 'village';
+      else if (aliveWolves >= aliveVillage) winner = 'werewolf';
+    }
+
     return {
       orphanIndex,
       orphan,
@@ -81,8 +96,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
       doppelgangerIndex,
       doppelganger,
       canCopyRole,
+      winner,
     };
-  }, [state.players, state.hasDoctor, state.doctorCharges]);
+  }, [state.players, state.hasDoctor, state.doctorCharges, state.phase]);
+
+  const playedWinnerRef = useRef<Winner | null>(null);
+
+  useEffect(() => {
+    const winner = derived.winner;
+    if (winner === playedWinnerRef.current) return;
+    if (winner === 'village') playVillageWinSfx();
+    else if (winner === 'werewolf') playWerewolfWinSfx();
+    playedWinnerRef.current = winner;
+  }, [derived.winner, playVillageWinSfx, playWerewolfWinSfx]);
 
   const value = useMemo(
     () => ({

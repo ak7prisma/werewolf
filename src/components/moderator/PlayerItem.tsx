@@ -1,4 +1,4 @@
-import { Heart, Skull, Stethoscope } from 'lucide-react';
+import { Heart, Skull, Stethoscope, Vote } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ interface PlayerItemProps {
   isOrphanFather: boolean;
   orphanFatherName?: string | null;
   canRevive: boolean;
+  onVote: (index: number) => void;
   onKill: (index: number) => void;
   onRevive: (index: number) => void;
 }
@@ -22,6 +23,7 @@ export function PlayerItem({
   isOrphanFather,
   orphanFatherName,
   canRevive,
+  onVote,
   onKill,
   onRevive,
 }: PlayerItemProps) {
@@ -76,10 +78,28 @@ export function PlayerItem({
       </div>
 
       {player.alive ? (
-        <Button size="sm" variant="default" block className="mt-auto" onClick={() => onKill(index)}>
-          <Skull />
-          Bunuh
-        </Button>
+        <div className="mt-auto grid w-full grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            block
+            title="Eliminasi lewat voting warga"
+            onClick={() => onVote(index)}
+          >
+            <Vote />
+            Vote
+          </Button>
+          <Button
+            size="sm"
+            variant="default"
+            block
+            title="Bunuh oleh gigitan Werewolf"
+            onClick={() => onKill(index)}
+          >
+            <Skull />
+            Bunuh
+          </Button>
+        </div>
       ) : canRevive ? (
         <Button
           size="sm"
