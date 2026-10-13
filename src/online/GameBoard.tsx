@@ -78,7 +78,7 @@ export function GameBoard() {
   const candidates = useMemo(() => {
     if (!game || !you) return [];
     const seats = game.candidates ?? [];
-    return game.players.filter((player) => seats.includes(player.seat));
+    return (game.players ?? []).filter((player) => seats.includes(player.seat));
   }, [game, you]);
 
   const voteTargets = alivePlayers;
@@ -86,7 +86,7 @@ export function GameBoard() {
   const kingTargets = useMemo(() => {
     if (!game || !you) return [];
     const seats = game.kingCandidates ?? [];
-    return game.players.filter((player) => seats.includes(player.seat));
+    return (game.players ?? []).filter((player) => seats.includes(player.seat));
   }, [game, you]);
 
   if (!game || !you) {
@@ -97,6 +97,9 @@ export function GameBoard() {
     );
   }
 
+  const players = game.players ?? [];
+  const events = game.events ?? [];
+  const allies = you.allies ?? [];
   const finished = game.room.phase === 'finished';
   const myTurn = !finished && you.alive && you.isYourTurn && game.call !== null;
 
@@ -146,7 +149,7 @@ export function GameBoard() {
             Hasil Terawang
           </p>
           <strong className="mt-1 block text-sm font-bold text-foreground">
-            {nameOf(game.players, you.seer.target_seat)}
+            {nameOf(players, you.seer.target_seat)}
           </strong>
           <div
             className={`mx-auto mt-3 flex size-20 items-center justify-center rounded-2xl text-4xl font-black uppercase neo-border neo-shadow ${
@@ -191,10 +194,10 @@ export function GameBoard() {
               <p className="text-xs font-semibold text-[#c5c5d5]">{myRoll.description}</p>
             </div>
           </div>
-          {you.allies.length > 0 && (
+          {allies.length > 0 && (
             <p className="mt-3 rounded-lg bg-secondary px-3 py-2 text-xs font-semibold">
               Rekan Werewolf:{' '}
-              <strong>{you.allies.map((seat) => nameOf(game.players, seat)).join(', ')}</strong>
+              <strong>{allies.map((seat) => nameOf(players, seat)).join(', ')}</strong>
             </p>
           )}
         </Card>
@@ -204,7 +207,7 @@ export function GameBoard() {
         Pemain
       </p>
       <ul className="flex w-full flex-col gap-2">
-        {game.players.map((player) => (
+        {players.map((player) => (
           <li key={player.seat}>
             <Card
               className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5"
@@ -239,14 +242,14 @@ export function GameBoard() {
         ))}
       </ul>
 
-      {game.events.length > 0 && (
+      {events.length > 0 && (
         <div className="mt-5 w-full">
           <p className="mb-2 text-xs font-black tracking-wide text-muted-foreground uppercase">
             Log
           </p>
           <Card className="rounded-xl px-3 py-2.5">
             <ul className="flex flex-col gap-1.5">
-              {game.events.map((event, index) => (
+              {events.map((event, index) => (
                 <li key={index} className="text-xs font-semibold text-[#c5c5d5]">
                   {event.message}
                 </li>
