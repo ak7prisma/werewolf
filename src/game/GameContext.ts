@@ -8,7 +8,7 @@ export interface StartResult {
   error?: string;
 }
 
-export type Winner = 'village' | 'werewolf';
+export type Winner = 'village' | 'werewolf' | 'fool';
 
 export interface GameContextValue {
   state: GameState;

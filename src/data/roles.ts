@@ -7,6 +7,7 @@ import {
   GiDominoMask,
   GiEyeOfHorus,
   GiHound,
+  GiJesterHat,
   GiMedicalPack,
   GiShield,
   GiVomiting,
@@ -14,8 +15,8 @@ import {
 } from 'react-icons/gi';
 import type { IconType } from 'react-icons';
 
-export type RoleCategory = 'evil' | 'active' | 'variable' | 'normal';
-export type RoleTeam = 'werewolf' | 'village';
+export type RoleCategory = 'evil' | 'active' | 'variable' | 'normal' | 'neutral';
+export type RoleTeam = 'werewolf' | 'village' | 'neutral';
 
 export interface RoleDefinition {
   name: string;
@@ -38,6 +39,7 @@ export interface RoleDefinition {
  *   - active   : warga dengan skill aktif di malam hari
  *   - variable : bisa berubah menjadi baik atau jahat
  *   - normal   : warga tanpa skill aktif
+ *   - neutral  : tidak berpihak, menang dengan caranya sendiri
  */
 export const ROLES = {
   Werewolf: {
@@ -146,6 +148,15 @@ export const ROLES = {
     description: 'Penyamar. Pilih pemain yang sudah mati dan ambil perannya.',
     team: 'village',
     category: 'variable',
+  },
+  Fool: {
+    name: 'Fool',
+    icon: GiJesterHat,
+    short: 'Badut.',
+    description:
+      'Kamu si Badut netral, tidak berpihak pada siapa pun. Kamu menang seketika bila warga menghukummu lewat voting - biarkan mereka menyesal telah memilihmu!',
+    team: 'neutral',
+    category: 'neutral',
   },
 } satisfies Record<string, RoleDefinition>;
 

@@ -33,6 +33,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const playCardSfx = useCallback(() => engine.playCard(), [engine]);
   const playVillageWinSfx = useCallback(() => engine.playWin('village'), [engine]);
   const playWerewolfWinSfx = useCallback(() => engine.playWin('werewolf'), [engine]);
+  const playFoolWinSfx = useCallback(() => engine.playWin('fool'), [engine]);
   const toggleMuted = useCallback(() => setMuted((value) => !value), []);
 
   const value = useMemo<AudioApi>(
@@ -40,10 +41,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       playCardSfx,
       playVillageWinSfx,
       playWerewolfWinSfx,
+      playFoolWinSfx,
       muted,
       toggleMuted,
     }),
-    [playCardSfx, playVillageWinSfx, playWerewolfWinSfx, muted, toggleMuted],
+    [playCardSfx, playVillageWinSfx, playWerewolfWinSfx, playFoolWinSfx, muted, toggleMuted],
   );
 
   return <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>;

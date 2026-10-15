@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, Skull, Trophy, Undo2 } from 'lucide-react';
+import { PartyPopper, RotateCcw, Skull, Trophy, Undo2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +17,35 @@ import { NightDialog } from './NightDialog';
 import { DayDialog } from './DayDialog';
 import { HunterShotDialog } from './HunterShotDialog';
 import { useGame } from '@/game/GameContext';
+import type { Winner } from '@/game/GameContext';
 import { useModal, type ModalOptions } from '@/components/ModalContext';
 import { DAY_STAGE, GAME_PHASE, NIGHT_STAGE, type NightRole } from '@/game/constants';
 import { isThreatRole, nightCandidates } from '@/game/logic';
+
+/** Tampilan pop up akhir permainan untuk setiap pihak pemenang. */
+const WIN_RESULTS: Record<
+  Winner,
+  { icon: typeof Trophy; iconClass: string; title: string; description: string }
+> = {
+  werewolf: {
+    icon: Skull,
+    iconClass: 'bg-primary text-primary-foreground',
+    title: 'Werewolf Menang!',
+    description: 'Para Werewolf berhasil menghabisi warga desa.',
+  },
+  village: {
+    icon: Trophy,
+    iconClass: 'bg-success text-success-foreground',
+    title: 'Warga Menang!',
+    description: 'Semua Werewolf berhasil dieliminasi.',
+  },
+  fool: {
+    icon: PartyPopper,
+    iconClass: 'bg-info text-info-foreground',
+    title: 'Fool Menang!',
+    description: 'Warga terkelabui - si Badut dihukum lewat voting dan menang!',
+  },
+};
 
 /** Konfirmasi sebelum aksi malam yang langsung mengunci target. */
 const NIGHT_TARGET_CONFIRM: Partial<Record<NightRole, (name: string) => ModalOptions>> = {
@@ -249,26 +275,20 @@ export function ModeratorBoard() {
 
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
         <DialogContent className="max-w-xs">
-          <DialogHeader className="items-center">
-            <span
-              className={cn(
-                'grid size-16 place-items-center rounded-2xl neo-border-2',
-                winner === 'werewolf'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-success text-success-foreground',
-              )}
-            >
-              {winner === 'werewolf' ? <Skull className="size-8" /> : <Trophy className="size-8" />}
-            </span>
-            <DialogTitle className="mt-1 text-2xl">
-              {winner === 'werewolf' ? 'Werewolf Menang!' : 'Warga Menang!'}
-            </DialogTitle>
-            <DialogDescription>
-              {winner === 'werewolf'
-                ? 'Para Werewolf berhasil menghabisi warga desa.'
-                : 'Semua Werewolf berhasil dieliminasi.'}
-            </DialogDescription>
-          </DialogHeader>
+          {winner ? (
+            <DialogHeader className="items-center">
+              <span
+                className={cn(
+                  'grid size-16 place-items-center rounded-2xl neo-border-2',
+                  WIN_RESULTS[winner].iconClass,
+                )}
+              >
+                {createElement(WIN_RESULTS[winner].icon, { className: 'size-8' })}
+              </span>
+              <DialogTitle className="mt-1 text-2xl">{WIN_RESULTS[winner].title}</DialogTitle>
+              <DialogDescription>{WIN_RESULTS[winner].description}</DialogDescription>
+            </DialogHeader>
+          ) : null}
           <DialogFooter>
             <Button variant="secondary" block onClick={handleReset}>
               <RotateCcw />

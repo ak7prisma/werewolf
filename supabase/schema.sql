@@ -11,14 +11,22 @@ create table if not exists public.roles (
   name        text primary key,
   short       text not null,
   description text not null,
-  team        text not null check (team in ('werewolf', 'village')),
-  category    text not null check (category in ('evil', 'active', 'variable', 'normal')),
+  team        text not null check (team in ('werewolf', 'village', 'neutral')),
+  category    text not null check (category in ('evil', 'active', 'variable', 'normal', 'neutral')),
   icon        text not null default 'GiWerewolf',
   is_active   boolean not null default true,
   sort_order  int not null default 0,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+-- Untuk database yang sudah ada: perluas constraint agar menerima role netral.
+alter table public.roles drop constraint if exists roles_team_check;
+alter table public.roles
+  add constraint roles_team_check check (team in ('werewolf', 'village', 'neutral'));
+alter table public.roles drop constraint if exists roles_category_check;
+alter table public.roles
+  add constraint roles_category_check check (category in ('evil', 'active', 'variable', 'normal', 'neutral'));
 
 alter table public.roles enable row level security;
 
@@ -70,7 +78,10 @@ insert into public.roles (name, short, description, team, category, icon, sort_o
    'village', 'normal', 'GiCrown', 11),
   ('Doppelganger', 'Penyamar.',
    'Penyamar. Pilih pemain yang sudah mati dan ambil perannya.',
-   'village', 'variable', 'GiDominoMask', 12)
+   'village', 'variable', 'GiDominoMask', 12),
+  ('Fool', 'Badut.',
+   'Kamu si Badut netral, tidak berpihak pada siapa pun. Kamu menang seketika bila warga menghukummu lewat voting - biarkan mereka menyesal telah memilihmu!',
+   'neutral', 'neutral', 'GiJesterHat', 13)
 on conflict (name) do update set
   short       = excluded.short,
   description = excluded.description,

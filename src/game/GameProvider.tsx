@@ -62,7 +62,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   });
   const state = history.present;
   const canRetry = history.past.length > 0;
-  const { playVillageWinSfx, playWerewolfWinSfx } = useAudio();
+  const { playVillageWinSfx, playWerewolfWinSfx, playFoolWinSfx } = useAudio();
 
   const startGame = useCallback((rawTotal: string): StartResult => {
     const totalPlayers = Number.parseInt(rawTotal, 10);
@@ -152,7 +152,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const aliveWolves = alivePlayers.filter(
       (player) => getRole(player.role)?.team === 'werewolf',
     ).length;
-    const aliveVillage = alivePlayers.length - aliveWolves;
+    const aliveNeutral = alivePlayers.filter(
+      (player) => getRole(player.role)?.team === 'neutral',
+    ).length;
+    const aliveVillage = alivePlayers.length - aliveWolves - aliveNeutral;
+
+    // The Fool is neutral and wins the instant the village votes them out.
+    const votedFool =
+      state.dayVictim !== null &&
+      getRole(state.players[state.dayVictim]?.role ?? '')?.team === 'neutral';
 
     let winner: Winner | null = null;
     if (
@@ -160,12 +168,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       state.players.length > 0 &&
       state.pendingHunter === null
     ) {
-      if (aliveWolves === 0) winner = 'village';
+      if (votedFool) winner = 'fool';
+      else if (aliveWolves === 0) winner = 'village';
       else if (aliveWolves >= aliveVillage) winner = 'werewolf';
     }
 
     return { king, doppelgangerIndex, doppelganger, canCopyRole, currentNightRole, winner };
-  }, [state.players, state.phase, state.nightStage, state.nightOrder, state.nightIndex, state.pendingHunter]);
+  }, [state.players, state.phase, state.nightStage, state.nightOrder, state.nightIndex, state.pendingHunter, state.dayVictim]);
 
   const playedWinnerRef = useRef<Winner | null>(null);
 
@@ -174,8 +183,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (winner === playedWinnerRef.current) return;
     if (winner === 'village') playVillageWinSfx();
     else if (winner === 'werewolf') playWerewolfWinSfx();
+    else if (winner === 'fool') playFoolWinSfx();
     playedWinnerRef.current = winner;
-  }, [derived.winner, playVillageWinSfx, playWerewolfWinSfx]);
+  }, [derived.winner, playVillageWinSfx, playWerewolfWinSfx, playFoolWinSfx]);
 
   const value = useMemo(
     () => ({

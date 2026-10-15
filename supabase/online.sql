@@ -25,12 +25,15 @@ create table if not exists public.rooms (
   round         int  not null default 0,
   phase_ends_at timestamptz,
   min_players   int  not null default 4,
-  max_players   int  not null default 11,
+  max_players   int  not null default 13,
   role_pool     text[] not null default '{Seer,Guardian,Doctor}',
   winner        text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Katalog kini punya 13 role (termasuk Fool netral) - samakan batas default.
+alter table public.rooms alter column max_players set default 13;
 
 create table if not exists public.room_players (
   id           uuid primary key default gen_random_uuid(),

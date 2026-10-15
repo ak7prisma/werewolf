@@ -4,6 +4,7 @@ export interface AudioApi {
   playCardSfx: () => void;
   playVillageWinSfx: () => void;
   playWerewolfWinSfx: () => void;
+  playFoolWinSfx: () => void;
   muted: boolean;
   toggleMuted: () => void;
 }

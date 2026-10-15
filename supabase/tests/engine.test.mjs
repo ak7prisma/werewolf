@@ -417,6 +417,31 @@ console.log('\nSkenario 10: aksi malam paralel');
   assert((await gs(room)).stage === 'dawn', 'semua role beraksi → langsung fajar');
 }
 
+// --------------------------------------------------------------------------
+// Skenario 11: role netral Fool - dihukum lewat voting → Fool menang.
+// --------------------------------------------------------------------------
+console.log('\nSkenario 11: Fool dihukum lewat voting');
+{
+  const room = '00000000-0000-0000-0000-0000000000ab';
+  const a = U(1), b = U(2), c = U(3), d = U(4), e = U(5);
+  await setupGame(room, { [a]: 'Werewolf', [b]: 'Seer', [c]: 'Guardian', [d]: 'Fool', [e]: 'Disease' }, 1);
+
+  const foolRole = await one('select * from roles where name = $1', ['Fool']);
+  assert(foolRole.team === 'neutral' && foolRole.category === 'neutral', 'Fool terdaftar netral di katalog');
+
+  // Paksa masuk tahap voting siang, lalu semua pemain hidup menghukum Fool (kursi 3).
+  await db.query("update game_state set phase='day', stage='vote', round=1 where room_id=$1", [room]);
+  for (const uid of [a, b, c, e]) {
+    await db.query('insert into votes (room_id, round, voter_id, target_seat) values ($1,1,$2,$3)', [room, uid, 3]);
+  }
+  await db.query('select _tally($1)', [room]);
+
+  const g = await gs(room);
+  assert(g.winner === 'fool' && g.phase === 'finished', 'vote Fool → pertandingan berakhir dengan Fool menang');
+  assert((await ply(room, 3)).alive === false, 'Fool tereliminasi lewat voting');
+  assert((await one('select * from rooms where id=$1', [room])).winner === 'fool', 'rooms.winner = fool');
+}
+
 console.log(`\n${passed} lulus, ${failed} gagal`);
 await db.close();
 if (failed > 0) process.exit(1);

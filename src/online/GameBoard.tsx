@@ -129,13 +129,16 @@ export function GameBoard() {
     }
     if (notified.current) return;
     notified.current = true;
+    const foolWon = game.winner === 'fool';
     const werewolfWon = game.winner === 'werewolf';
     void alert({
-      title: werewolfWon ? 'Werewolf Menang!' : 'Warga Desa Menang!',
-      description: werewolfWon
-        ? 'Kegelapan menelan desa. Tekan "Main Lagi" untuk mengulang.'
-        : 'Semua Werewolf berhasil dihabisi. Tekan "Main Lagi" untuk mengulang.',
-      tone: werewolfWon ? 'danger' : 'success',
+      title: foolWon ? 'Fool Menang!' : werewolfWon ? 'Werewolf Menang!' : 'Warga Desa Menang!',
+      description: foolWon
+        ? 'Warga terkelabui - si Badut dihukum lewat voting, dialah pemenangnya. Tekan "Main Lagi" untuk mengulang.'
+        : werewolfWon
+          ? 'Kegelapan menelan desa. Tekan "Main Lagi" untuk mengulang.'
+          : 'Semua Werewolf berhasil dihabisi. Tekan "Main Lagi" untuk mengulang.',
+      tone: foolWon ? 'info' : werewolfWon ? 'danger' : 'success',
     });
   }, [game, alert]);
 
@@ -264,12 +267,14 @@ export function GameBoard() {
             Pemenang
           </p>
           <strong className="mt-1 block text-2xl font-black tracking-wide uppercase">
-            {game.winner === 'werewolf' ? 'Werewolf' : 'Warga Desa'}
+            {game.winner === 'fool' ? 'Fool' : game.winner === 'werewolf' ? 'Werewolf' : 'Warga Desa'}
           </strong>
           <p className="mt-2 text-sm font-semibold text-[#c5c5d5]">
-            {game.winner === 'werewolf'
-              ? 'Kegelapan menelan desa. Werewolf menang!'
-              : 'Desa bersorak. Semua Werewolf berhasil dihabisi!'}
+            {game.winner === 'fool'
+              ? 'Si Badut tertawa terakhir - warga menghukumnya lewat voting dan itu justru kemenangannya!'
+              : game.winner === 'werewolf'
+                ? 'Kegelapan menelan desa. Werewolf menang!'
+                : 'Desa bersorak. Semua Werewolf berhasil dihabisi!'}
           </p>
         </Card>
       )}

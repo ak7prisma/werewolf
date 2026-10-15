@@ -10,6 +10,7 @@ const CATEGORY_STYLES = {
   active: { bg: '#123a26', badge: 'bg-success text-success-foreground' },
   variable: { bg: '#3a2b12', badge: 'bg-accent text-accent-foreground' },
   normal: { bg: '#262638', badge: 'bg-secondary text-secondary-foreground' },
+  neutral: { bg: '#241a3a', badge: 'bg-info text-info-foreground' },
 };
 
 export function CardsPage() {

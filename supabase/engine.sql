@@ -43,6 +43,7 @@ create table if not exists public.game_state (
   doctor_charges     int  not null default 0,
   deadline           timestamptz,
   winner             text,
+  fool_won           boolean not null default false,
   updated_at         timestamptz not null default now()
 );
 
@@ -51,6 +52,7 @@ alter table public.game_state add column if not exists night_start_alive int[];
 alter table public.game_state add column if not exists day_report text[];
 alter table public.game_state add column if not exists day_ready int[];
 alter table public.game_state add column if not exists night_acted text[] not null default '{}';
+alter table public.game_state add column if not exists fool_won boolean not null default false;
 
 alter table public.game_state enable row level security;
 -- Sengaja tanpa policy: hanya RPC SECURITY DEFINER yang boleh mengakses.
@@ -326,12 +328,16 @@ begin
   join public.roles r on r.name = pr.role
   where rp.room_id = p_room and rp.alive and r.team = 'werewolf';
 
-  select count(*) - v_wolves into v_village
-    from public.room_players where room_id = p_room and alive;
+  select count(*) into v_village
+  from public.room_players rp
+  join public.player_roles pr on pr.room_id = rp.room_id and pr.user_id = rp.user_id
+  join public.roles r on r.name = pr.role
+  where rp.room_id = p_room and rp.alive and r.team = 'village';
 
   if (select count(*) from public.room_players where room_id = p_room) = 0 then return; end if;
 
-  if v_wolves = 0 then v_winner := 'village';
+  if v_gs.fool_won then v_winner := 'fool';
+  elsif v_wolves = 0 then v_winner := 'village';
   elsif v_wolves >= v_village then v_winner := 'werewolf';
   end if;
 
@@ -342,7 +348,11 @@ begin
     update public.rooms set status = 'finished', phase = 'finished', winner = v_winner, updated_at = now()
       where id = p_room;
     perform public._event(p_room, 'winner',
-      case when v_winner = 'village' then 'Kemenangan WARGA DESA!' else 'Kemenangan WEREWOLF!' end);
+      case
+        when v_winner = 'village' then 'Kemenangan WARGA DESA!'
+        when v_winner = 'werewolf' then 'Kemenangan WEREWOLF!'
+        else 'Kemenangan FOOL - si Badut berhasil dikelabui warga!'
+      end);
   end if;
 end;
 $$;
@@ -504,6 +514,12 @@ begin
   update public.game_state set day_victim = v_top where room_id = p_room;
   perform public._apply_death(p_room, v_top, 'vote');
 
+  -- Fool netral: begitu dihukum lewat voting, dia langsung menang.
+  if public._role_of_seat(p_room, v_top) = 'Fool' then
+    update public.game_state set fool_won = true where room_id = p_room;
+    perform public._event(p_room, 'fool', 'Warga menghukum si Badut lewat voting - Fool menang!');
+  end if;
+
   if (select pending_hunter from public.game_state where room_id = p_room) is not null then
     update public.game_state set stage = 'hunter', resume_stage = 'result', deadline = now() + interval '30 seconds'
       where room_id = p_room;
@@ -552,6 +568,7 @@ begin
         day_report = null,
         day_ready = '{}',
         winner = null,
+        fool_won = false,
         deadline = case when cardinality(v_order) > 0 then now() + interval '90 seconds' else null end
     where room_id = p_room;
 
@@ -642,7 +659,7 @@ begin
         last_guard_target = null, guardian_self_used = false, seer_target = null,
         wolf_poisoned = false, wolf_skip = false, pending_hunter = null, day_victim = null,
         king_tied = null, night_start_alive = null, day_report = null, day_ready = null,
-        winner = null, deadline = null, resume_stage = null, updated_at = now();
+        winner = null, fool_won = false, deadline = null, resume_stage = null, updated_at = now();
 
   update public.rooms set status = 'playing', phase = 'night', stage = 'call', round = 1, winner = null, updated_at = now()
     where id = v_room.id;
@@ -939,6 +956,12 @@ begin
   perform public._event(v_room, 'vote',
     format('Raja mengeksekusi %s.',
       (select display_name from public.room_players where room_id = v_room and seat = p_target_seat)));
+
+  -- Bila Raja mengeksekusi Fool, si Badut tetap menang.
+  if public._role_of_seat(v_room, p_target_seat) = 'Fool' then
+    update public.game_state set fool_won = true where room_id = v_room;
+    perform public._event(v_room, 'fool', 'Raja menghukum si Badut - Fool menang!');
+  end if;
 
   if (select pending_hunter from public.game_state where room_id = v_room) is not null then
     update public.game_state set stage = 'hunter', resume_stage = 'result', deadline = now() + interval '30 seconds'

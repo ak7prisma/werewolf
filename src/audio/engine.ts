@@ -1,4 +1,4 @@
-export type WinKind = 'village' | 'werewolf';
+export type WinKind = 'village' | 'werewolf' | 'fool';
 
 const MOTIF_INTERVAL = 5200;
 const HEARTBEAT_INTERVAL = 2600;
@@ -233,6 +233,18 @@ export class AudioEngine {
       });
       const chord = [523.25, 659.25, 783.99, 1046.5];
       chord.forEach((freq) => this.tone(freq, now + 0.7, 2.4, 'sine', 0.09, this.master!));
+      return;
+    }
+
+    if (kind === 'fool') {
+      // Jingle nakal - naik-turun seperti tawa si Badut.
+      const notes = [659.25, 880, 1046.5, 880, 1174.66, 880, 1046.5];
+      notes.forEach((freq, i) => {
+        this.tone(freq, now + i * 0.13, 0.5, 'square', 0.11, this.master!);
+        this.tone(freq * 1.5, now + i * 0.13 + 0.02, 0.35, 'triangle', 0.05, this.master!);
+      });
+      const tail = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+      tail.forEach((freq, i) => this.tone(freq, now + 0.95 + i * 0.08, 1.6, 'triangle', 0.1, this.master!));
       return;
     }
 

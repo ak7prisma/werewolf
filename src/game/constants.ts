@@ -1,5 +1,5 @@
 export const MIN_PLAYERS = 4;
-export const MAX_PLAYERS = 12;
+export const MAX_PLAYERS = 13;
 
 /** Offline day discussion length before voting starts automatically. */
 export const DISCUSSION_SECONDS = 120;
