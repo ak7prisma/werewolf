@@ -1,5 +1,5 @@
 export const MIN_PLAYERS = 4;
-export const MAX_PLAYERS = 11;
+export const MAX_PLAYERS = 12;
 
 /** Roles that are guaranteed to participate in a game (at least MIN_ACTIVE_ROLES of them). */
 export const ACTIVE_ROLES = ['Seer', 'Guardian', 'Doctor'];
