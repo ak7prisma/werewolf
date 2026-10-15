@@ -23,7 +23,7 @@ export function CardsPage() {
         <p className="mt-1 text-xs font-semibold text-muted-foreground">Memuat katalog…</p>
       ) : source === 'fallback' ? (
         <p className="mt-1 text-xs font-semibold text-muted-foreground">
-          Mode offline — memakai katalog bawaan.
+          Mode offline - memakai katalog bawaan.
         </p>
       ) : null}
 

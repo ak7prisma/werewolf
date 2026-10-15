@@ -1,4 +1,4 @@
--- Wolf Night — Supabase base schema (katalog role)
+-- Wolf Night - Supabase base schema (katalog role)
 -- Jalankan PALING DULU, sebelum online.sql dan engine.sql.
 --
 -- Tabel public.roles adalah sumber tunggal katalog role: dipakai halaman Katalog

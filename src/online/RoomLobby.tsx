@@ -51,7 +51,7 @@ export function RoomLobby() {
   async function handleLeave() {
     const ok = await confirm({
       title: 'Keluar Room?',
-      description: isHost ? 'Kamu host — room akan dibubarkan.' : 'Kamu akan keluar dari lobby.',
+      description: isHost ? 'Kamu host - room akan dibubarkan.' : 'Kamu akan keluar dari lobby.',
       tone: 'warning',
     });
     if (ok) await withBusy(leaveRoom);

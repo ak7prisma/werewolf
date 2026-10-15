@@ -1,4 +1,4 @@
--- Wolf Night — Supabase online game engine (fase 2: malam/siang otomatis)
+-- Wolf Night - Supabase online game engine (fase 2: malam/siang otomatis)
 -- Jalankan setelah schema.sql dan online.sql.
 --
 -- Server-authoritative: seluruh state game disimpan di public.game_state yang
@@ -359,11 +359,11 @@ begin
   select * into v_gs from public.game_state where room_id = p_room for update;
 
   if v_gs.wolf_skip then
-    perform public._event(p_room, 'dawn', 'Malam berlalu tanpa mangsa — Werewolf masih keracunan.');
+    perform public._event(p_room, 'dawn', 'Malam berlalu tanpa mangsa - Werewolf masih keracunan.');
   elsif v_gs.wolf_target is not null then
     if v_gs.guard_target = v_gs.wolf_target then
       perform public._event(p_room, 'guarded',
-        format('%s dilindungi Guardian — serangan Werewolf gagal!',
+        format('%s dilindungi Guardian - serangan Werewolf gagal!',
           (select display_name from public.room_players where room_id = p_room and seat = v_gs.wolf_target)));
     else
       perform public._apply_death(p_room, v_gs.wolf_target, 'werewolf');
@@ -396,7 +396,7 @@ begin
   select coalesce(night_start_alive, '{}') into v_start
     from public.game_state where room_id = p_room;
 
-  -- Hanya nama yang berubah status sejak awal malam — tanpa menyebut alasannya.
+  -- Hanya nama yang berubah status sejak awal malam - tanpa menyebut alasannya.
   select array_agg(rp.display_name order by rp.seat) into v_deaths
     from public.room_players rp
     where rp.room_id = p_room and not rp.alive and rp.seat = any(v_start);
@@ -437,7 +437,7 @@ begin
   update public.game_state set stage = 'vote', deadline = now() + interval '60 seconds', day_ready = '{}'
     where room_id = p_room;
   update public.rooms set stage = 'vote', updated_at = now() where id = p_room;
-  perform public._event(p_room, 'vote', 'Voting dimulai — pilih siapa yang digantung!');
+  perform public._event(p_room, 'vote', 'Voting dimulai - pilih siapa yang digantung!');
 end;
 $$;
 
@@ -490,13 +490,13 @@ begin
         set stage = 'king', day_victim = null, king_tied = v_tied,
             deadline = now() + interval '30 seconds'
         where room_id = p_room;
-      perform public._event(p_room, 'vote', 'Suara seri — Raja menentukan siapa yang dieliminasi!');
+      perform public._event(p_room, 'vote', 'Suara seri - Raja menentukan siapa yang dieliminasi!');
       return;
     end if;
 
     update public.game_state set stage = 'result', day_victim = null, deadline = now() + interval '8 seconds'
       where room_id = p_room;
-    perform public._event(p_room, 'vote', 'Suara seri — tidak ada yang dieliminasi.');
+    perform public._event(p_room, 'vote', 'Suara seri - tidak ada yang dieliminasi.');
     perform public._check_winner(p_room);
     return;
   end if;
@@ -731,7 +731,7 @@ begin
   elsif v_gs.stage = 'king' and now() > v_gs.deadline then
     update public.game_state set stage = 'result', day_victim = null, deadline = now() + interval '8 seconds'
       where room_id = v_room.id;
-    perform public._event(v_room.id, 'vote', 'Raja tidak menentukan — tidak ada yang dieliminasi.');
+    perform public._event(v_room.id, 'vote', 'Raja tidak menentukan - tidak ada yang dieliminasi.');
     perform public._check_winner(v_room.id);
 
   elsif v_gs.stage = 'result' and now() > v_gs.deadline then
@@ -862,7 +862,7 @@ $$;
 
 -- Setiap pemain hidup menandai "siap melewati siang". Bila SEMUA pemain hidup
 -- sepakat, siang langsung berakhir dan malam berikutnya dimulai tanpa eliminasi
--- — berguna di hari pertama yang belum ada informasi apa pun.
+-- - berguna di hari pertama yang belum ada informasi apa pun.
 create or replace function public.submit_day_ready()
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare

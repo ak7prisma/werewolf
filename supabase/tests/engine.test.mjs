@@ -99,7 +99,7 @@ const uidOfWolf = async (room) =>
 const expire = (room) =>
   db.query("update game_state set deadline = now() - interval '1 second' where room_id = $1", [room]);
 
-// Jalankan seluruh aksi malam (paralel) — role boleh beraksi dalam urutan apa pun.
+// Jalankan seluruh aksi malam (paralel) - role boleh beraksi dalam urutan apa pun.
 async function playNight(room, targetsByRole) {
   for (let guard = 0; guard < 20; guard += 1) {
     const g = await gs(room);
@@ -392,7 +392,7 @@ console.log('\nSkenario 9: lewati siang lewat kesepakatan');
 }
 
 // --------------------------------------------------------------------------
-// Skenario 10: aksi malam paralel — satu role beraksi tidak memblokir yang lain.
+// Skenario 10: aksi malam paralel - satu role beraksi tidak memblokir yang lain.
 // --------------------------------------------------------------------------
 console.log('\nSkenario 10: aksi malam paralel');
 {

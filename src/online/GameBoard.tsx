@@ -139,7 +139,7 @@ export function GameBoard() {
     });
   }, [game, alert]);
 
-  // Pop up "berita pagi" sekali tiap siang — tanpa menyebut alasan.
+  // Pop up "berita pagi" sekali tiap siang - tanpa menyebut alasan.
   useEffect(() => {
     if (!game || game.room.phase !== 'day') return;
     if (reportShown.current === game.room.round) return;
@@ -467,6 +467,6 @@ export function GameBoard() {
 }
 
 function nameOf(players: GamePlayerView[], seat: number | null): string {
-  if (seat === null) return '—';
+  if (seat === null) return '-';
   return players.find((player) => player.seat === seat)?.name ?? `Kursi ${seat}`;
 }

@@ -1,4 +1,4 @@
--- Wolf Night — Supabase online schema (fase 1: room + lobby + pembagian role)
+-- Wolf Night - Supabase online schema (fase 1: room + lobby + pembagian role)
 -- Jalankan setelah schema.sql (butuh tabel public.roles).
 --
 -- Model: server-authoritative. Client TIDAK menulis langsung ke tabel; semua
