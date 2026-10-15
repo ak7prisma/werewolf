@@ -1,10 +1,47 @@
-import { ArrowRight, Gavel, Moon, SkipForward, Sun, Vote } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowRight, Gavel, Moon, SkipForward, Sun, Timer, Vote } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { useGame } from '@/game/GameContext';
 import { useModal, type ModalOptions } from '@/components/ModalContext';
-import { DAY_STAGE } from '@/game/constants';
+import { DAY_STAGE, DISCUSSION_SECONDS } from '@/game/constants';
+
+/** Countdown that fires `onElapsed` once the discussion window runs out. */
+function DiscussionTimer({ onElapsed }: { onElapsed: () => void }) {
+  const [remaining, setRemaining] = useState(DISCUSSION_SECONDS);
+
+  useEffect(() => {
+    const deadline = Date.now() + DISCUSSION_SECONDS * 1000;
+    const id = window.setInterval(() => {
+      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setRemaining(left);
+      if (left <= 0) {
+        window.clearInterval(id);
+        onElapsed();
+      }
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [onElapsed]);
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+
+  return (
+    <div className="mb-3">
+      <div className="mb-1 flex items-center justify-center gap-1.5 text-sm font-black tracking-wide uppercase">
+        <Timer className="size-4 text-accent" />
+        Diskusi {minutes}:{seconds.toString().padStart(2, '0')}
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-secondary neo-border-2">
+        <div
+          className="h-full bg-accent transition-[width] duration-300 ease-linear"
+          style={{ width: `${(remaining / DISCUSSION_SECONDS) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function DayDialog() {
   const { state, dayBeginVote, dayConfirm, daySkip, startNight } = useGame();
@@ -27,8 +64,10 @@ export function DayDialog() {
               Siang {state.round}
             </h2>
             <p className="mt-1 mb-3 text-sm font-semibold text-muted-foreground">
-              Semua pemain berdiskusi mencari Werewolf. Setelah selesai, mulai voting.
+              Semua pemain berdiskusi mencari Werewolf. Otomatis lanjut ke voting setelah waktu
+              diskusi habis.
             </p>
+            <DiscussionTimer key={state.round} onElapsed={dayBeginVote} />
             <Button
               block
               onClick={() =>
@@ -43,7 +82,7 @@ export function DayDialog() {
               }
             >
               <Gavel />
-              Mulai Voting
+              Mulai Voting Sekarang
             </Button>
           </>
         ) : null}

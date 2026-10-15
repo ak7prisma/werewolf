@@ -1,6 +1,9 @@
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 12;
 
+/** Offline day discussion length before voting starts automatically. */
+export const DISCUSSION_SECONDS = 120;
+
 /** Roles that are guaranteed to participate in a game (at least MIN_ACTIVE_ROLES of them). */
 export const ACTIVE_ROLES = ['Seer', 'Guardian', 'Doctor'];
 export const MIN_ACTIVE_ROLES = 2;
