@@ -51,6 +51,18 @@ export async function deleteRoom(): Promise<void> {
   if (error) throw error;
 }
 
+/** Tandai room masih aktif (heartbeat kehadiran). */
+export async function touchRoom(): Promise<void> {
+  const { error } = await client().rpc('touch_room');
+  if (error) throw error;
+}
+
+/** Bubarkan room basi (tanpa aktivitas >= 30 menit). */
+export async function cleanupStaleRooms(): Promise<void> {
+  const { error } = await client().rpc('cleanup_stale_rooms');
+  if (error) throw error;
+}
+
 export async function beginGame(): Promise<void> {
   const { error } = await client().rpc('start_online_game');
   if (error) throw error;

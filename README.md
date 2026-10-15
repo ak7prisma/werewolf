@@ -1,17 +1,17 @@
-# Wolf Night — Werewolf Companion
+# Wolf Night - Werewolf Companion
 
 Aplikasi pendamping permainan **Werewolf** untuk moderator dan pemain. Dulu berupa HTML/CSS/JS
 vanilla, kini telah dimigrasikan ke **React + Vite** dengan struktur modular.
 
 ## Stack
 
-- **React 19 + Vite** — build tool & dev server
-- **Tailwind CSS v4** — styling (tema *dark neubrutalism*)
-- **shadcn/ui** — komponen UI (Button, Input, Dialog, Select, Card, Badge, Alert)
-- **lucide-react** — ikon
-- **react-router-dom** — routing (`/`, `/online`, `/katalog`)
-- **framer-motion** — animasi (kocok kartu, flip, transisi langkah)
-- **Supabase** — katalog peran, auth anonim, room & lobby online realtime
+- **React 19 + Vite** - build tool & dev server
+- **Tailwind CSS v4** - styling (tema *dark neubrutalism*)
+- **shadcn/ui** - komponen UI (Button, Input, Dialog, Select, Card, Badge, Alert)
+- **lucide-react** - ikon
+- **react-router-dom** - routing (`/`, `/online`, `/katalog`)
+- **framer-motion** - animasi (kocok kartu, flip, transisi langkah)
+- **Supabase** - katalog peran, auth anonim, room & lobby online realtime
 
 ## Supabase
 
@@ -24,10 +24,14 @@ tidak dikonfigurasi atau gagal diakses, app otomatis memakai katalog bawaan di
 Model **server-authoritative**: client tidak menulis langsung ke tabel, semua
 mutasi lewat RPC `SECURITY DEFINER`. Role pemain disimpan di `player_roles` dan
 hanya bisa dibaca oleh pemiliknya (RLS). Fase malam/siang dijalankan otomatis
-oleh engine SQL (`game_tick`) — tanpa moderator.
+oleh engine SQL (`game_tick`) - tanpa moderator.
 
 Setup:
-1. Jalankan berurutan di SQL Editor: `supabase/schema.sql` → `supabase/online.sql` → `supabase/engine.sql`.
+1. Jalankan berurutan di SQL Editor: `supabase/schema.sql` → `supabase/online.sql` → `supabase/engine.sql` → `supabase/cleanup.sql`.
+   `cleanup.sql` membuat room dibubarkan otomatis setelah tidak ada aktivitas selama 30 menit
+   (trigger aktivitas pemain + heartbeat client). Bila ekstensi `pg_cron` tersedia, pembersihan
+   juga dijadwalkan tiap 5 menit; jika tidak, `cleanup_stale_rooms()` tetap dipanggil setiap
+   kali menu Online dibuka.
 2. Aktifkan **Authentication → Providers → Anonymous sign-ins** di dashboard.
 3. Salin `.env.example` menjadi `.env.local` dan isi:
 
@@ -40,7 +44,7 @@ Alur: buka tab **Online** → isi nama → **Buat Room** (dapat kode 5 karakter)
 **Gabung Room** pakai kode → host menekan **Mulai Game** saat semua pemain siap.
 Setelah mulai, tiap pemain melihat papan permainan: fase malam/siang, giliran
 aksi (Werewolf/Guardian/Seer/Doctor/Orphan/Doppelganger), voting siang, dan
-tembakan Hunter — semua dijalankan otomatis oleh engine tanpa moderator. Saat
+tembakan Hunter - semua dijalankan otomatis oleh engine tanpa moderator. Saat
 selesai, pemenang langsung diberitahukan; host bisa menekan **Main Lagi** untuk
 mengulang di room yang sama, atau **Bubarkan** (host) / **Keluar** untuk keluar
 dan menghapus room.
@@ -93,7 +97,8 @@ npm run test:sql # uji engine SQL via PGlite (tanpa Docker)
 ```
 
 `supabase/` berisi skema dan engine:
-- `schema.sql` — tabel katalog `roles` + seed.
-- `online.sql` — profil, room, lobby, pembagian role, realtime.
-- `engine.sql` — mesin fase malam/siang otomatis (`start_online_game`, `game_tick`, `submit_night_action`, `submit_vote`, `submit_day_ready`, `submit_king_vote`, `submit_hunter_shot`, `game_view`, `play_again`). Semua role aktif beraksi **paralel** dalam satu jendela malam (tanpa bergantian); malam berakhir begitu semua role beraksi atau waktu habis. Durasi: malam 1,5 menit, diskusi 2 menit, vote 1 menit. Saat vote seri dan Raja masih hidup, permainan masuk tahap `king` agar Raja memutuskan siapa yang dieliminasi. Di hari pertama semua pemain dapat sepakat melewati siang (`submit_day_ready`) sehingga langsung ke malam tanpa eliminasi.
-- `tests/engine.test.mjs` — uji integrasi engine memakai `@electric-sql/pglite`.
+- `schema.sql` - tabel katalog `roles` + seed.
+- `online.sql` - profil, room, lobby, pembagian role, realtime.
+- `cleanup.sql` - auto-bubarkan room basi (`last_activity_at`, trigger aktivitas, `touch_room`, `cleanup_stale_rooms`, jadwal pg_cron opsional).
+- `engine.sql` - mesin fase malam/siang otomatis (`start_online_game`, `game_tick`, `submit_night_action`, `submit_vote`, `submit_day_ready`, `submit_king_vote`, `submit_hunter_shot`, `game_view`, `play_again`). Semua role aktif beraksi **paralel** dalam satu jendela malam (tanpa bergantian); malam berakhir begitu semua role beraksi atau waktu habis. Durasi: malam 1,5 menit, diskusi 2 menit, vote 1 menit. Saat vote seri dan Raja masih hidup, permainan masuk tahap `king` agar Raja memutuskan siapa yang dieliminasi. Di hari pertama semua pemain dapat sepakat melewati siang (`submit_day_ready`) sehingga langsung ke malam tanpa eliminasi.
+- `tests/engine.test.mjs` - uji integrasi engine memakai `@electric-sql/pglite`.

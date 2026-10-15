@@ -43,7 +43,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
     try {
       setGame(await repo.fetchGameView());
     } catch {
-      /* abaikan — heartbeat berikutnya akan mencoba lagi */
+      /* abaikan - heartbeat berikutnya akan mencoba lagi */
     }
   }, []);
 
@@ -53,12 +53,15 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
 
     repo
       .ensureSession()
-      .then((sessionUser) => {
+      .then(async (sessionUser) => {
         if (cancelled) return;
         setUser(sessionUser);
         setStatus('ready');
         const saved = window.localStorage.getItem(STORAGE_KEY);
-        if (saved) void refresh(saved);
+        if (!saved) return;
+        // Bubarkan room basi dari sesi lama dulu, agar tidak ikut ter-resume.
+        await repo.cleanupStaleRooms().catch(() => undefined);
+        if (!cancelled) await refresh(saved);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -73,6 +76,17 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
 
   const roomId = room?.id ?? null;
   const roomStatus = room?.status ?? null;
+
+  // Heartbeat kehadiran: tandai room masih aktif selama masih dibuka, sehingga
+  // room yang ditinggal (tanpa aktivitas >= 30 menit) bisa dibubarkan otomatis.
+  useEffect(() => {
+    if (!roomId) return undefined;
+    void repo.touchRoom().catch(() => undefined);
+    const id = window.setInterval(() => {
+      void repo.touchRoom().catch(() => undefined);
+    }, 60000);
+    return () => window.clearInterval(id);
+  }, [roomId]);
 
   // Realtime lobby: perubahan rooms & room_players.
   useEffect(() => {
