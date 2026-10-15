@@ -1,88 +1,45 @@
-import { useState } from 'react';
-import { Crosshair, TriangleAlert } from 'lucide-react';
+import { Crosshair } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Alert } from '@/components/ui/alert';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { Player } from '@/game/reducer';
+import { useModal } from '@/components/ModalContext';
 
 interface HunterShotDialogProps {
   hunterName: string;
-  hunterIndex: number;
-  players: Player[];
-  onConfirm: (targetIndex: number) => void;
+  selectedName: string | null;
+  onConfirm: () => void;
 }
 
-export function HunterShotDialog({
-  hunterName,
-  hunterIndex,
-  players,
-  onConfirm,
-}: HunterShotDialogProps) {
-  const [targetIndex, setTargetIndex] = useState('');
+export function HunterShotDialog({ hunterName, selectedName, onConfirm }: HunterShotDialogProps) {
+  const { confirm } = useModal();
 
-  const candidates = players
-    .map((player, index) => ({ player, index }))
-    .filter(({ player, index }) => index !== hunterIndex && player.alive);
+  async function handleShoot() {
+    if (selectedName === null) return;
+    const ok = await confirm({
+      title: 'Tembak Pemain?',
+      description: `Tembak ${selectedName}? Tindakan ini tidak bisa dibatalkan.`,
+      confirmText: 'Tembak',
+      tone: 'danger',
+    });
+    if (ok) onConfirm();
+  }
 
   return (
-    <Dialog open>
-      <DialogContent
-        hideClose
-        className="z-[60]"
-        onEscapeKeyDown={(event) => event.preventDefault()}
-        onPointerDownOutside={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
-      >
-        <DialogTitle className="flex items-center justify-center gap-2">
-          <Crosshair className="size-5" />
+    <div className="sticky top-3 z-40 mb-3 w-full max-w-md">
+      <div className="rounded-2xl bg-card p-4 text-center neo-border neo-shadow-lg">
+        <h2 className="flex items-center justify-center gap-2 text-lg font-black tracking-wide uppercase">
+          <Crosshair className="size-5 text-accent" />
           Tembakan Terakhir
-        </DialogTitle>
-        <DialogDescription>
-          <b className="text-foreground">{hunterName}</b> (Hunter) tewas dan wajib menarik satu
-          pemain ikut mati. Permainan tidak bisa dilanjutkan sebelum memilih.
-        </DialogDescription>
+        </h2>
+        <p className="mt-1 mb-3 text-sm font-semibold text-muted-foreground">
+          <b className="text-foreground">{hunterName}</b> (Hunter) tewas dan wajib menembak satu
+          pemain. Klik kartu pemain di papan sebagai target.
+        </p>
 
-        <Alert variant="warning" className="mt-1 inline-flex items-center justify-center gap-2 text-center">
-          <TriangleAlert className="size-4 shrink-0" />
-          Wajib pilih satu target
-        </Alert>
-
-        <Select value={targetIndex || undefined} onValueChange={setTargetIndex}>
-          <SelectTrigger>
-            <SelectValue placeholder="— Pilih pemain yang ditarik mati —" />
-          </SelectTrigger>
-          <SelectContent>
-            {candidates.map(({ player, index }) => (
-              <SelectItem key={index} value={String(index)}>
-                {player.name} ({player.role})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button
-          block
-          variant="default"
-          disabled={targetIndex === ''}
-          onClick={() => onConfirm(Number(targetIndex))}
-        >
+        <Button block variant="default" disabled={selectedName === null} onClick={handleShoot}>
           <Crosshair />
           Tembak
         </Button>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

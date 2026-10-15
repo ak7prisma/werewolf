@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { useGame } from '@/game/GameContext';
+import { useModal, type ModalOptions } from '@/components/ModalContext';
 import { NIGHT_STAGE, type NightRole } from '@/game/constants';
 import { isThreatRole, nightCandidates } from '@/game/logic';
 
@@ -14,7 +15,7 @@ const ROLE_PROMPT: Record<NightRole, { title: string; hint: string }> = {
   },
   Guardian: {
     title: 'Panggil Guardian',
-    hint: 'Wajib pilih — klik kartu di papan. Tidak boleh orang yang sama dua malam berturut-turut; melindungi diri sendiri hanya 1x seumur game.',
+    hint: 'Wajib pilih - klik kartu di papan. Tidak boleh orang yang sama dua malam berturut-turut; melindungi diri sendiri hanya 1x seumur game.',
   },
   Seer: {
     title: 'Panggil Seer',
@@ -26,7 +27,7 @@ const ROLE_PROMPT: Record<NightRole, { title: string; hint: string }> = {
   },
   Orphan: {
     title: 'Panggil Orphan',
-    hint: 'Wajib pilih — klik kartu pemain di papan sebagai bapak angkat.',
+    hint: 'Wajib pilih - klik kartu pemain di papan sebagai bapak angkat.',
   },
   Doppelganger: {
     title: 'Panggil Doppelganger',
@@ -36,6 +37,12 @@ const ROLE_PROMPT: Record<NightRole, { title: string; hint: string }> = {
 
 export function NightDialog() {
   const { state, currentNightRole, nightBeginCall, nightConfirm, nightSkip, nightToDay } = useGame();
+  const { confirm } = useModal();
+
+  async function ask(options: ModalOptions, action: () => void) {
+    const ok = await confirm(options);
+    if (ok) action();
+  }
 
   const role = currentNightRole;
   const notification = state.notification;
@@ -59,7 +66,19 @@ export function NightDialog() {
             <p className="mt-1 mb-3 text-sm font-semibold text-muted-foreground">
               Semua pemain menutup mata. Moderator memanggil role satu per satu.
             </p>
-            <Button block onClick={nightBeginCall}>
+            <Button
+              block
+              onClick={() =>
+                ask(
+                  {
+                    title: 'Mulai Malam?',
+                    description: 'Semua pemain menutup mata, lalu role dipanggil satu per satu.',
+                    confirmText: 'Mulai',
+                  },
+                  nightBeginCall,
+                )
+              }
+            >
               <Moon />
               Mulai Memanggil Role
             </Button>
@@ -73,10 +92,16 @@ export function NightDialog() {
               {ROLE_PROMPT[role].hint}
             </p>
 
+            {role === 'Werewolf' && selectedPlayer ? (
+              <div className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-black tracking-wide text-accent-foreground uppercase neo-border-2">
+                Target: {selectedPlayer.name}
+              </div>
+            ) : null}
+
             {role === 'Werewolf' && state.wolfSkipThisNight ? (
               <Alert variant="warning" className="mb-3 inline-flex items-center justify-center gap-2 text-center">
                 <TriangleAlert className="size-4 shrink-0" />
-                Werewolf keracunan — tidak berburu malam ini.
+                Werewolf keracunan - tidak berburu malam ini.
               </Alert>
             ) : null}
 
@@ -90,19 +115,47 @@ export function NightDialog() {
                 )}
               >
                 {isThreatRole(selectedPlayer.role)
-                  ? `MERAH — ${selectedPlayer.name} adalah ancaman!`
-                  : `AMAN — ${selectedPlayer.name} bukan ancaman.`}
+                  ? `MERAH - ${selectedPlayer.name} adalah ancaman!`
+                  : `AMAN - ${selectedPlayer.name} bukan ancaman.`}
               </div>
             ) : null}
 
             {role === 'Werewolf' ? (
               state.wolfSkipThisNight ? (
-                <Button variant="secondary" block onClick={nightSkip}>
+                <Button
+                  variant="secondary"
+                  block
+                  onClick={() =>
+                    ask(
+                      {
+                        title: 'Lewati Berburu?',
+                        description: 'Werewolf keracunan dan tidak berburu malam ini.',
+                        confirmText: 'Lanjut',
+                        tone: 'warning',
+                      },
+                      nightSkip,
+                    )
+                  }
+                >
                   <SkipForward />
                   Lanjut (keracunan)
                 </Button>
               ) : (
-                <Button block disabled={state.selection === null} onClick={nightConfirm}>
+                <Button
+                  block
+                  disabled={state.selection === null}
+                  onClick={() =>
+                    ask(
+                      {
+                        title: 'Bunuh Pemain?',
+                        description: `Bunuh ${selectedPlayer?.name ?? 'target'} malam ini?`,
+                        confirmText: 'Bunuh',
+                        tone: 'danger',
+                      },
+                      nightConfirm,
+                    )
+                  }
+                >
                   <Crosshair />
                   Bunuh
                 </Button>
@@ -114,13 +167,41 @@ export function NightDialog() {
               </Button>
             ) : role === 'Guardian' ? (
               hasCandidates ? null : (
-                <Button variant="secondary" block onClick={nightSkip}>
+                <Button
+                  variant="secondary"
+                  block
+                  onClick={() =>
+                    ask(
+                      {
+                        title: 'Lewati Aksi?',
+                        description: 'Tidak ada target yang bisa dilindungi malam ini.',
+                        confirmText: 'Lewati',
+                        tone: 'warning',
+                      },
+                      nightSkip,
+                    )
+                  }
+                >
                   <SkipForward />
                   Lanjut
                 </Button>
               )
             ) : role === 'Orphan' ? null : (
-              <Button variant="secondary" block onClick={nightSkip}>
+              <Button
+                variant="secondary"
+                block
+                onClick={() =>
+                  ask(
+                    {
+                      title: 'Lewati Aksi?',
+                      description: 'Yakin ingin melewati aksi malam ini?',
+                      confirmText: 'Lewati',
+                      tone: 'warning',
+                    },
+                    nightSkip,
+                  )
+                }
+              >
                 <SkipForward />
                 Lewati
               </Button>
@@ -132,7 +213,7 @@ export function NightDialog() {
           <>
             <h2 className="flex items-center justify-center gap-2 text-lg font-black tracking-wide uppercase">
               <ArrowRight className="size-5 text-accent" />
-              Fajar — Malam {state.round}
+              Fajar - Malam {state.round}
             </h2>
             <p className="mt-1 mb-3 text-sm font-semibold text-muted-foreground">
               Semua pemain membuka mata.
@@ -147,7 +228,19 @@ export function NightDialog() {
                 Malam ini berlalu tanpa korban.
               </Alert>
             )}
-            <Button block onClick={nightToDay}>
+            <Button
+              block
+              onClick={() =>
+                ask(
+                  {
+                    title: 'Lanjut ke Siang?',
+                    description: 'Fajar telah tiba. Semua pemain membuka mata.',
+                    confirmText: 'Lanjut',
+                  },
+                  nightToDay,
+                )
+              }
+            >
               <ArrowRight />
               Lanjut ke Siang
             </Button>

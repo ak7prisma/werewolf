@@ -19,6 +19,8 @@ export interface GameContextValue {
   /** Role the moderator is currently calling, or null outside a night call. */
   currentNightRole: NightRole | null;
   winner: Winner | null;
+  /** Whether there is a previous action that can be undone. */
+  canRetry: boolean;
   startGame: (rawTotal: string) => StartResult;
   dealCards: (name: string) => StartResult;
   pickCard: (index: number) => void;
@@ -29,14 +31,18 @@ export interface GameContextValue {
   nightConfirm: () => void;
   nightSkip: () => void;
   nightToDay: () => void;
+  clearSelection: () => void;
   dayBeginVote: () => void;
   daySelect: (index: number) => void;
   dayConfirm: () => void;
   daySkip: () => void;
+  hunterSelect: (index: number) => void;
   shootWithHunter: (targetIndex: number) => void;
   copyRoleWithDoppelganger: (targetIndex: number) => void;
   dismissNotification: () => void;
   resetGame: () => void;
+  /** Undo the last meaningful action (offline moderator only). */
+  retry: () => void;
 }
 
 export const GameContext = createContext<GameContextValue | null>(null);

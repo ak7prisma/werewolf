@@ -81,10 +81,12 @@ export type GameAction =
   | { type: 'NIGHT_CONFIRM' }
   | { type: 'NIGHT_SKIP' }
   | { type: 'NIGHT_TO_DAY' }
+  | { type: 'CLEAR_SELECTION' }
   | { type: 'DAY_BEGIN_VOTE' }
   | { type: 'DAY_SELECT'; payload: { index: number } }
   | { type: 'DAY_CONFIRM' }
   | { type: 'DAY_SKIP' }
+  | { type: 'HUNTER_SELECT'; payload: { index: number } }
   | { type: 'HUNTER_SHOOT'; payload: { targetIndex: number } }
   | { type: 'DOPPELGANGER_COPY'; payload: { targetIndex: number } }
   | { type: 'DISMISS_NOTIFICATION' }
@@ -181,7 +183,7 @@ function applyDeath(
       notification: {
         tone: 'success',
         title: 'Bangkit Lagi!',
-        message: `Strong Villager punya 2 nyawa — ${target.name} bangkit! Sisa ${target.hp} nyawa.`,
+        message: `Strong Villager punya 2 nyawa - ${target.name} bangkit! Sisa ${target.hp} nyawa.`,
       },
       poisoned: false,
       pendingHunter: currentPendingHunter,
@@ -242,7 +244,7 @@ function resolveDawn(state: GameState): GameState {
       notification = {
         tone: 'success',
         title: 'Dilindungi!',
-        message: `Guardian melindungi ${name} — serangan Werewolf gagal!`,
+        message: `Guardian melindungi ${name} - serangan Werewolf gagal!`,
       };
     } else {
       const result = applyDeath(players, target, 'werewolf', pendingHunter);
@@ -448,6 +450,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'CLEAR_SELECTION': {
+      return { ...state, selection: null };
+    }
+
     case 'DAY_BEGIN_VOTE': {
       if (state.dayStage !== DAY_STAGE.DISCUSSION) return state;
       return { ...state, dayStage: DAY_STAGE.VOTE, selection: null, notification: null };
@@ -479,6 +485,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'HUNTER_SELECT': {
+      const { index } = action.payload;
+      if (state.pendingHunter === null) return state;
+      const target = state.players[index];
+      if (!target || !target.alive || index === state.pendingHunter) return state;
+      return { ...state, selection: index };
+    }
+
     case 'HUNTER_SHOOT': {
       const { targetIndex } = action.payload;
       if (state.pendingHunter === null) return state;
@@ -495,10 +509,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ({
           tone: 'danger',
           title: 'Tembakan Hunter!',
-          message: `${hunterName} (Hunter) menembak ${target.name} sebelum tewas — ${target.name} ikut mati!`,
+          message: `${hunterName} (Hunter) menembak ${target.name} sebelum tewas - ${target.name} ikut mati!`,
         } as GameNotification);
 
-      return { ...state, players, pendingHunter: null, notification };
+      return { ...state, players, pendingHunter: null, selection: null, notification };
     }
 
     case 'DOPPELGANGER_COPY': {

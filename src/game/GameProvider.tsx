@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import { GameContext, type StartResult, type Winner } from './GameContext';
-import { gameReducer, initialGameState } from './reducer';
+import { gameReducer, initialGameState, type GameAction, type GameState } from './reducer';
 import { buildNightOrder, createDeck } from './logic';
 import {
   GAME_PHASE,
@@ -14,8 +14,54 @@ import {
 import { getRole } from '@/data/roles';
 import { useAudio } from '@/audio/AudioPlayerContext';
 
+/** Actions that change the game in a way the moderator may want to undo. */
+const CHECKPOINT_ACTIONS: ReadonlySet<GameAction['type']> = new Set([
+  'START_NIGHT',
+  'NIGHT_CONFIRM',
+  'NIGHT_SKIP',
+  'NIGHT_TO_DAY',
+  'DAY_BEGIN_VOTE',
+  'DAY_CONFIRM',
+  'DAY_SKIP',
+  'HUNTER_SHOOT',
+  'DOPPELGANGER_COPY',
+]);
+
+type HistoryAction = GameAction | { type: 'RETRY' };
+
+interface GameHistory {
+  past: GameState[];
+  present: GameState;
+}
+
+/**
+ * Wraps the pure game reducer with an undo stack so the moderator can step back
+ * after a misclick. Only "meaningful" actions are checkpointed; pure selection
+ * changes are not.
+ */
+function historyReducer(state: GameHistory, action: HistoryAction): GameHistory {
+  if (action.type === 'RETRY') {
+    if (state.past.length === 0) return state;
+    const present = state.past[state.past.length - 1];
+    return { past: state.past.slice(0, -1), present };
+  }
+
+  const present = gameReducer(state.present, action);
+  if (present === state.present) return state;
+  if (action.type === 'RESET') return { past: [], present };
+  if (CHECKPOINT_ACTIONS.has(action.type)) {
+    return { past: [...state.past, state.present], present };
+  }
+  return { past: state.past, present };
+}
+
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(gameReducer, initialGameState);
+  const [history, dispatch] = useReducer(historyReducer, {
+    past: [],
+    present: initialGameState,
+  });
+  const state = history.present;
+  const canRetry = history.past.length > 0;
   const { playVillageWinSfx, playWerewolfWinSfx } = useAudio();
 
   const startGame = useCallback((rawTotal: string): StartResult => {
@@ -62,6 +108,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const nightConfirm = useCallback(() => dispatch({ type: 'NIGHT_CONFIRM' }), []);
   const nightSkip = useCallback(() => dispatch({ type: 'NIGHT_SKIP' }), []);
   const nightToDay = useCallback(() => dispatch({ type: 'NIGHT_TO_DAY' }), []);
+  const clearSelection = useCallback(() => dispatch({ type: 'CLEAR_SELECTION' }), []);
 
   const dayBeginVote = useCallback(() => dispatch({ type: 'DAY_BEGIN_VOTE' }), []);
   const daySelect = useCallback(
@@ -71,6 +118,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const dayConfirm = useCallback(() => dispatch({ type: 'DAY_CONFIRM' }), []);
   const daySkip = useCallback(() => dispatch({ type: 'DAY_SKIP' }), []);
 
+  const hunterSelect = useCallback(
+    (index: number) => dispatch({ type: 'HUNTER_SELECT', payload: { index } }),
+    [],
+  );
   const shootWithHunter = useCallback(
     (targetIndex: number) => dispatch({ type: 'HUNTER_SHOOT', payload: { targetIndex } }),
     [],
@@ -81,6 +132,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
   const dismissNotification = useCallback(() => dispatch({ type: 'DISMISS_NOTIFICATION' }), []);
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
+  const retry = useCallback(() => dispatch({ type: 'RETRY' }), []);
 
   const derived = useMemo(() => {
     const king = state.players.find((player) => player.role === 'King' && player.alive) ?? null;
@@ -129,6 +181,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       ...derived,
+      canRetry,
       startGame,
       dealCards,
       pickCard,
@@ -139,18 +192,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       nightConfirm,
       nightSkip,
       nightToDay,
+      clearSelection,
       dayBeginVote,
       daySelect,
       dayConfirm,
       daySkip,
+      hunterSelect,
       shootWithHunter,
       copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,
+      retry,
     }),
     [
       state,
       derived,
+      canRetry,
       startGame,
       dealCards,
       pickCard,
@@ -161,14 +218,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       nightConfirm,
       nightSkip,
       nightToDay,
+      clearSelection,
       dayBeginVote,
       daySelect,
       dayConfirm,
       daySkip,
+      hunterSelect,
       shootWithHunter,
       copyRoleWithDoppelganger,
       dismissNotification,
       resetGame,
+      retry,
     ],
   );
 

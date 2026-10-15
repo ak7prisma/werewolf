@@ -14,10 +14,10 @@ export function SetupStep() {
   const { alert } = useModal();
   const [total, setTotal] = useState('');
 
-  async function handleStart() {
+  function handleStart() {
     const result = startGame(total);
     if (!result.ok) {
-      await alert({ title: 'Jumlah Pemain', description: result.error, tone: 'warning' });
+      void alert({ title: 'Jumlah Pemain', description: result.error, tone: 'warning' });
     }
   }
 
