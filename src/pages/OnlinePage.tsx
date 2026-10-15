@@ -2,18 +2,13 @@ import { Loader2, RefreshCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { SectionTitle, Subtitle } from '@/components/SectionTitle';
-import { OnlineProvider } from '@/online/OnlineProvider';
 import { useOnline } from '@/online/OnlineContext';
 import { CreateJoinForm } from '@/online/CreateJoinForm';
 import { RoomLobby } from '@/online/RoomLobby';
 import { GameBoard } from '@/online/GameBoard';
 
 export function OnlinePage() {
-  return (
-    <OnlineProvider>
-      <OnlineView />
-    </OnlineProvider>
-  );
+  return <OnlineView />;
 }
 
 function OnlineView() {
@@ -31,7 +26,7 @@ function OnlineView() {
         <Subtitle>Bermain Werewolf bersama teman di perangkat masing-masing.</Subtitle>
         <p className="max-w-md text-center text-sm font-semibold text-muted-foreground">
           Sistem membagikan peran, menjalankan fase malam &amp; siang, menghitung voting, dan
-          menentukan pemenang secara otomatis — tanpa moderator. Buat room, bagikan kode
+          menentukan pemenang secara otomatis - tanpa moderator. Buat room, bagikan kode
           5&nbsp;karakter ke teman, lalu mulai saat semua pemain (minimal&nbsp;4) sudah siap.
         </p>
       </section>

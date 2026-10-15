@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AudioProvider } from '@/audio/AudioProvider';
 import { ModalProvider } from '@/components/ModalProvider';
 import { GameProvider } from '@/game/GameProvider';
+import { OnlineProvider } from '@/online/OnlineProvider';
 import { RolesProvider } from '@/data/RolesProvider';
 import './index.css';
 
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
         <AudioProvider>
           <ModalProvider>
             <GameProvider>
-              <App />
+              <OnlineProvider>
+                <App />
+              </OnlineProvider>
             </GameProvider>
           </ModalProvider>
         </AudioProvider>

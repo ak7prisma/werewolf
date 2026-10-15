@@ -1,16 +1,26 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Volume2, VolumeX } from 'lucide-react';
 
 import { NavTabs } from '@/components/NavTabs';
 import { useAudio } from '@/audio/AudioPlayerContext';
+import { useGame } from '@/game/GameContext';
+import { useOnline } from '@/online/OnlineContext';
+import { GAME_PHASE } from '@/game/constants';
 
 export function AppLayout() {
   const { muted, toggleMuted } = useAudio();
+  const { pathname } = useLocation();
+  const { state } = useGame();
+  const { room } = useOnline();
+
+  const offlinePlaying = pathname === '/' && state.phase !== GAME_PHASE.SETUP;
+  const onlineInRoom = pathname.startsWith('/online') && room !== null;
+  const hideNav = offlinePlaying || onlineInRoom;
 
   return (
     <div className="flex min-h-screen items-start justify-center px-3.5 py-5 md:items-center md:py-10">
       <main className="w-full max-w-[480px] rounded-[20px] bg-card p-6 pb-8 text-center neo-border neo-shadow-lg md:max-w-[520px]">
-        <NavTabs />
+        {hideNav ? null : <NavTabs />}
         <Outlet />
       </main>
 
