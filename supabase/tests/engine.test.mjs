@@ -442,6 +442,42 @@ console.log('\nSkenario 11: Fool dihukum lewat voting');
   assert((await one('select * from rooms where id=$1', [room])).winner === 'fool', 'rooms.winner = fool');
 }
 
+// --------------------------------------------------------------------------
+// Skenario 12: room 40 pemain - Werewolf bertambah, role aktif tidak duplikat.
+// --------------------------------------------------------------------------
+console.log('\nSkenario 12: deck 40 pemain');
+{
+  await reset();
+  const uid = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+  const ids = Array.from({ length: 40 }, (_, i) => uid(i + 1));
+  for (const id of ids) {
+    await db.query('insert into auth.users (id) values ($1) on conflict do nothing', [id]);
+  }
+
+  await asUser(ids[0]);
+  const room = (await q('select * from create_room($1)', ['Host']))[0];
+  assert(room.max_players === 40, 'room baru menampung 40 pemain');
+
+  for (let i = 1; i < ids.length; i += 1) {
+    await asUser(ids[i]);
+    await q('select join_room($1, $2)', [room.code, `P${i}`]);
+    await db.query('select set_ready(true)');
+  }
+
+  await asUser(ids[0]);
+  await db.query('select start_online_game()');
+
+  const roles = await q('select role from player_roles where room_id=$1', [room.id]);
+  const count = (name) => roles.filter((r) => r.role === name).length;
+
+  assert(roles.length === 40, '40 role dibagikan ke 40 pemain');
+  assert(count('Werewolf') === 6, '40 pemain → 6 Werewolf');
+  for (const role of ['Seer', 'Guardian', 'Doctor', 'Orphan', 'Doppelganger']) {
+    assert(count(role) <= 1, `${role} tidak duplikat`);
+  }
+  assert(roles.some((r) => r.role === 'Hunter'), 'role yang boleh duplikat tetap dibagikan');
+}
+
 console.log(`\n${passed} lulus, ${failed} gagal`);
 await db.close();
 if (failed > 0) process.exit(1);

@@ -12,49 +12,63 @@ export function shuffle<T>(list: readonly T[]): T[] {
   return out;
 }
 
-/**
- * Guarantee at least `MIN_ACTIVE_ROLES` night-active roles are present in the
- * deck by swapping in a replacement for a non-active role.
- */
-function enforceActiveRoles(deck: string[]): string[] {
-  const isActive = (role: string) => ACTIVE_ROLES.includes(role);
-  let missing = MIN_ACTIVE_ROLES - deck.filter(isActive).length;
-
-  while (missing > 0) {
-    const outside = ACTIVE_ROLES.filter((role) => !deck.includes(role));
-    if (outside.length === 0) break;
-
-    const replaceIdx = deck.findIndex((role) => !isActive(role) && role !== 'Werewolf');
-    if (replaceIdx === -1) break;
-
-    deck[replaceIdx] = outside[Math.floor(Math.random() * outside.length)];
-    missing -= 1;
-  }
-
-  return deck;
+/** Werewolf count grows by one at every multiple of 8 players (8, 16, 24, ...). */
+export function werewolfCount(totalPlayers: number): number {
+  return Math.max(1, Math.floor(totalPlayers / 8) + 1);
 }
 
 /**
- * Guarantee exactly one Werewolf is present. Because every player draws from a
- * shuffled deck, this gives each of the `totalPlayers` positions an equal 1/N
- * chance of holding the Werewolf (instead of always landing on the last pick).
+ * Roles with an active night skill may only appear once. Werewolf is duplicated
+ * by design, while other roles (Hunter, King, Fool, etc.) may repeat.
  */
-function enforceWerewolf(deck: string[]): string[] {
-  if (deck.includes('Werewolf')) return deck;
+export function isUniqueRole(role: string): boolean {
+  return role === 'Orphan' || role === 'Doppelganger' || getRole(role)?.category === 'active';
+}
 
-  const replaceIdx = deck.findIndex((role) => !ACTIVE_ROLES.includes(role));
-  if (replaceIdx !== -1) deck[replaceIdx] = 'Werewolf';
+/** Pick the single-copy roles that fit in the non-werewolf portion of the deck. */
+function pickUniqueRoles(room: number, roleNames: string[]): string[] {
+  const uniqueRoles = shuffle(roleNames.filter(isUniqueRole));
+  if (room <= 0 || uniqueRoles.length === 0) return [];
 
-  return deck;
+  const activeRoles = uniqueRoles.filter((role) => ACTIVE_ROLES.includes(role));
+  const otherUnique = uniqueRoles.filter((role) => !ACTIVE_ROLES.includes(role));
+  const includeCount = Math.min(uniqueRoles.length, room);
+  const activeCount = Math.min(
+    activeRoles.length,
+    includeCount,
+    Math.max(MIN_ACTIVE_ROLES, includeCount - otherUnique.length),
+  );
+
+  const selected = activeRoles.slice(0, activeCount);
+  selected.push(...otherUnique.slice(0, includeCount - selected.length));
+  return selected;
 }
 
 /**
  * Build the pool of role cards dealt for a game of `totalPlayers` players.
- * Randomness happens here (outside the reducer) so the reducer stays pure.
+ * Werewolves scale with player count, single-copy night roles appear once, and
+ * every remaining slot is filled from duplicable roles. Randomness happens here
+ * (outside the reducer) so the reducer stays pure.
  */
 export function createDeck(totalPlayers: number): string[] {
-  const deck = shuffle(getRoleNames()).slice(0, totalPlayers);
-  return shuffle(enforceActiveRoles(enforceWerewolf(deck)));
+  const roleNames = getRoleNames();
+  const wolves = Math.min(totalPlayers, werewolfCount(totalPlayers));
+  const deck = Array.from({ length: wolves }, () => 'Werewolf');
+
+  const remainingUnique = totalPlayers - wolves;
+  const uniquePicks = pickUniqueRoles(remainingUnique, roleNames);
+  deck.push(...uniquePicks);
+
+  const fillers = roleNames.filter((role) => role !== 'Werewolf' && !isUniqueRole(role));
+  let remaining = totalPlayers - deck.length;
+  while (remaining > 0) {
+    const filler = fillers[Math.floor(Math.random() * fillers.length)];
+    if (!filler) break;
+    deck.push(filler);
+    remaining -= 1;
+  }
+
+  return shuffle(deck);
 }
 
 /**

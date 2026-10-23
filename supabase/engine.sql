@@ -588,17 +588,13 @@ $$;
 create or replace function public.start_online_game()
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_uid       uuid := auth.uid();
-  v_room      public.rooms;
-  v_all       text[];
-  v_deck      text[];
-  v_active    text[];
-  v_count     int;
-  v_player    record;
-  v_idx       int;
-  v_candidate text;
-  v_i         int := 0;
-  v_has_doc   boolean;
+  v_uid     uuid := auth.uid();
+  v_room    public.rooms;
+  v_deck    text[];
+  v_count   int;
+  v_player  record;
+  v_i       int := 0;
+  v_has_doc boolean;
 begin
   select * into v_room from public.rooms
     where host_id = v_uid and status = 'lobby' for update;
@@ -612,28 +608,7 @@ begin
     raise exception 'Masih ada pemain yang belum siap.';
   end if;
 
-  select array_agg(name order by sort_order) into v_all from public.roles where is_active;
-  if v_all is null or cardinality(v_all) < v_count then
-    raise exception 'Katalog role di database tidak cukup untuk % pemain.', v_count;
-  end if;
-
-  select array_agg(t.role order by random()) into v_deck from unnest(v_all) as t(role);
-  v_deck := v_deck[1:v_count];
-  v_active := coalesce(v_room.role_pool, '{}');
-
-  while (select count(*) from unnest(v_deck) as d(role) where d.role = any(v_active)) < 2 loop
-    select i into v_idx from generate_subscripts(v_deck, 1) as i
-      where v_deck[i] <> all(v_active) and v_deck[i] <> 'Werewolf' limit 1;
-    exit when v_idx is null;
-    select a.x into v_candidate from unnest(v_active) as a(x) where a.x <> all(v_deck) limit 1;
-    exit when v_candidate is null;
-    v_deck[v_idx] := v_candidate;
-  end loop;
-
-  if not ('Werewolf' = any(v_deck)) then
-    select i into v_idx from generate_subscripts(v_deck, 1) as i where v_deck[i] <> all(v_active) limit 1;
-    if v_idx is not null then v_deck[v_idx] := 'Werewolf'; end if;
-  end if;
+  v_deck := public._build_role_deck(v_count, coalesce(v_room.role_pool, '{}'));
 
   delete from public.player_roles where room_id = v_room.id;
 

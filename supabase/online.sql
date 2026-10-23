@@ -25,15 +25,15 @@ create table if not exists public.rooms (
   round         int  not null default 0,
   phase_ends_at timestamptz,
   min_players   int  not null default 4,
-  max_players   int  not null default 13,
+  max_players   int  not null default 40,
   role_pool     text[] not null default '{Seer,Guardian,Doctor}',
   winner        text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
 
--- Katalog kini punya 13 role (termasuk Fool netral) - samakan batas default.
-alter table public.rooms alter column max_players set default 13;
+-- Room bisa menampung hingga 40 pemain; role boleh duplikat saat deck dibangun.
+alter table public.rooms alter column max_players set default 40;
 
 create table if not exists public.room_players (
   id           uuid primary key default gen_random_uuid(),
@@ -283,6 +283,82 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Helper: bangun deck role (duplikat diperbolehkan kecuali role aktif malam)
+-- ---------------------------------------------------------------------------
+
+create or replace function public._build_role_deck(p_count int, p_active text[])
+returns text[]
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_wolves      int;
+  v_deck        text[] := '{}';
+  v_unique      text[];
+  v_active_uniq text[];
+  v_other_unq   text[];
+  v_include     int;
+  v_active_take int;
+  v_fillers     text[];
+begin
+  if p_count <= 0 then return '{}'; end if;
+
+  -- Werewolf bertambah 1 setiap kelipatan 8 pemain (8, 16, 24, ...).
+  v_wolves := least(1 + (p_count / 8), p_count);
+  v_deck := array_fill('Werewolf'::text, array[v_wolves]);
+
+  -- Role dengan skill aktif malam hanya boleh muncul sekali.
+  select coalesce(array_agg(name order by random()), '{}') into v_unique
+    from public.roles
+    where is_active
+      and (category = 'active' or name in ('Orphan', 'Doppelganger'));
+
+  select coalesce(array_agg(name order by random()), '{}') into v_active_uniq
+    from public.roles
+    where is_active
+      and name = any(coalesce(p_active, '{}'))
+      and (category = 'active' or name in ('Orphan', 'Doppelganger'));
+
+  select coalesce(array_agg(name order by random()), '{}') into v_other_unq
+    from unnest(v_unique) as u(name)
+    where not (u.name = any(coalesce(v_active_uniq, '{}')));
+
+  v_include := least(cardinality(v_unique), p_count - v_wolves);
+  if v_include > 0 then
+    v_active_take := least(
+      cardinality(v_active_uniq),
+      v_include,
+      greatest(2, v_include - cardinality(v_other_unq))
+    );
+    v_deck := v_deck || v_active_uniq[1:v_active_take];
+    v_deck := v_deck || v_other_unq[1:(v_include - v_active_take)];
+  end if;
+
+  -- Sisa slot diisi role yang boleh duplikat.
+  select coalesce(array_agg(name order by random()), '{}') into v_fillers
+    from public.roles
+    where is_active
+      and name <> 'Werewolf'
+      and not (category = 'active' or name in ('Orphan', 'Doppelganger'));
+
+  while cardinality(v_deck) < p_count loop
+    if cardinality(v_fillers) = 0 then
+      raise exception 'Katalog role tidak cukup untuk % pemain.', p_count;
+    end if;
+    v_deck := array_append(
+      v_deck,
+      v_fillers[1 + floor(random() * cardinality(v_fillers))::int]
+    );
+  end loop;
+
+  return (select coalesce(array_agg(x order by random()), '{}') from unnest(v_deck) x);
+end;
+$$;
+
+grant execute on function public._build_role_deck(int, text[]) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- RPC: mulai game (kocok + bagi role di server)
 -- ---------------------------------------------------------------------------
 
@@ -293,16 +369,12 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_uid       uuid := auth.uid();
-  v_room      public.rooms;
-  v_all       text[];
-  v_deck      text[];
-  v_active    text[];
-  v_count     int;
-  v_player    record;
-  v_idx       int;
-  v_candidate text;
-  v_i         int := 0;
+  v_uid    uuid := auth.uid();
+  v_room   public.rooms;
+  v_deck   text[];
+  v_count  int;
+  v_player record;
+  v_i      int := 0;
 begin
   select * into v_room from public.rooms
     where host_id = v_uid and status = 'lobby'
@@ -321,39 +393,7 @@ begin
     raise exception 'Masih ada pemain yang belum siap.';
   end if;
 
-  select array_agg(name order by sort_order) into v_all from public.roles where is_active;
-  if v_all is null or array_length(v_all, 1) < v_count then
-    raise exception 'Katalog role di database tidak cukup untuk % pemain.', v_count;
-  end if;
-
-  select array_agg(t.role order by random()) into v_deck
-    from unnest(v_all) as t(role);
-  v_deck := v_deck[1:v_count];
-
-  v_active := coalesce(v_room.role_pool, '{}');
-
-  -- Jamin minimal 2 role aktif malam.
-  while (select count(*) from unnest(v_deck) as d(role) where d.role = any(v_active)) < 2 loop
-    select i into v_idx from generate_subscripts(v_deck, 1) as i
-      where v_deck[i] <> all(v_active) and v_deck[i] <> 'Werewolf'
-      limit 1;
-    exit when v_idx is null;
-
-    select a.x into v_candidate from unnest(v_active) as a(x)
-      where a.x <> all(v_deck)
-      limit 1;
-    exit when v_candidate is null;
-
-    v_deck[v_idx] := v_candidate;
-  end loop;
-
-  -- Jamin ada tepat satu Werewolf.
-  if not ('Werewolf' = any(v_deck)) then
-    select i into v_idx from generate_subscripts(v_deck, 1) as i
-      where v_deck[i] <> all(v_active)
-      limit 1;
-    if v_idx is not null then v_deck[v_idx] := 'Werewolf'; end if;
-  end if;
+  v_deck := public._build_role_deck(v_count, coalesce(v_room.role_pool, '{}'));
 
   delete from public.player_roles where room_id = v_room.id;
 
