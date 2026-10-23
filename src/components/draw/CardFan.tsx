@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { DealCard } from './DealCard';
 import { useAudio } from '@/audio/AudioPlayerContext';
@@ -6,7 +6,13 @@ import { useAudio } from '@/audio/AudioPlayerContext';
 const SHUFFLE_DURATION = 2600;
 const RIFLE_INTERVAL = 320;
 const REVEAL_DELAY = 900;
-const SPACING = 30;
+const MAX_PER_ROW = 10;
+const CARD_WIDTH = 56;
+const MAX_SPACING = 30;
+const MIN_SPACING = 10;
+const ROW_GAP = 100;
+const ARC = 7;
+const ROTATION = 5;
 
 interface CardFanProps {
   roles: string[];
@@ -20,7 +26,21 @@ export function CardFan({ roles, onPick, shuffle = false }: CardFanProps) {
   const [spread, setSpread] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [label, setLabel] = useState(shuffle ? 'Mengocok kartu…' : 'Kartu siap!');
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { playCardSfx } = useAudio();
+
+  useLayoutEffect(() => {
+    const element = containerRef.current;
+    if (!element) return undefined;
+
+    const update = () => setContainerWidth(element.clientWidth);
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const delay = shuffle ? SHUFFLE_DURATION : 150;
@@ -39,6 +59,16 @@ export function CardFan({ roles, onPick, shuffle = false }: CardFanProps) {
   }, [shuffling]);
 
   const count = roles.length;
+  const rows = Math.max(1, Math.ceil(count / MAX_PER_ROW));
+  const widestRow = Math.min(count, MAX_PER_ROW);
+  const spacing =
+    widestRow > 1
+      ? Math.max(
+          MIN_SPACING,
+          Math.min(MAX_SPACING, ((containerWidth || 320) - CARD_WIDTH) / (widestRow - 1)),
+        )
+      : MAX_SPACING;
+  const containerHeight = (rows - 1) * ROW_GAP + 170;
 
   function handleSelect(index: number) {
     if (picked !== null || shuffling) return;
@@ -51,9 +81,19 @@ export function CardFan({ roles, onPick, shuffle = false }: CardFanProps) {
   return (
     <>
       <p className="mb-3.5 text-sm font-semibold text-muted-foreground">{label}</p>
-      <div className="relative mx-0 my-3.5 h-[180px] w-full">
+      <div
+        ref={containerRef}
+        className="relative mx-0 my-3.5 w-full"
+        style={{ height: containerHeight }}
+      >
         {roles.map((role, index) => {
-          const offset = index - (count - 1) / 2;
+          const row = Math.floor(index / MAX_PER_ROW);
+          const rowStart = row * MAX_PER_ROW;
+          const rowCount = Math.min(MAX_PER_ROW, count - rowStart);
+          const column = index - rowStart;
+          const offset = column - (rowCount - 1) / 2;
+          const rowY = (row - (rows - 1) / 2) * ROW_GAP;
+          const stackOffset = index - (count - 1) / 2;
           const isPicked = picked === index;
 
           // Riffle shuffle: odd/even cards form two piles that split apart and
@@ -68,12 +108,12 @@ export function CardFan({ roles, onPick, shuffle = false }: CardFanProps) {
               key={`${role}-${index}`}
               role={role}
               spread={spread && !shuffling}
-              x={offset * SPACING}
-              y={-Math.abs(offset) * 7}
-              rotate={offset * 5}
-              stackX={offset * 1.6}
-              stackY={offset * -1.1}
-              stackRotate={offset * 1.2}
+              x={offset * spacing}
+              y={rowY - Math.abs(offset) * ARC}
+              rotate={offset * ROTATION}
+              stackX={stackOffset * 1.2}
+              stackY={stackOffset * -0.8}
+              stackRotate={stackOffset * 0.8}
               shuffling={shuffling}
               pileX={pileX}
               pileY={pileY}
