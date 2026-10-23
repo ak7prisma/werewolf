@@ -472,7 +472,7 @@ console.log('\nSkenario 12: deck 40 pemain');
 
   assert(roles.length === 40, '40 role dibagikan ke 40 pemain');
   assert(count('Werewolf') === 6, '40 pemain → 6 Werewolf');
-  for (const role of ['Seer', 'Guardian', 'Doctor', 'Orphan', 'Doppelganger']) {
+  for (const role of ['Seer', 'Guardian', 'Doctor', 'Orphan', 'Doppelganger', 'King', 'Fool']) {
     assert(count(role) <= 1, `${role} tidak duplikat`);
   }
   assert(roles.some((r) => r.role === 'Hunter'), 'role yang boleh duplikat tetap dibagikan');

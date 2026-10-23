@@ -32,7 +32,8 @@ export function SetupStep() {
       <SectionTitle>Siapkan Permainan</SectionTitle>
       <Subtitle>
         Minimal {MIN_PLAYERS}, maksimal {MAX_PLAYERS} pemain. Role lain boleh duplikat, tetapi role
-        dengan skill aktif malam tidak. Werewolf bertambah 1 setiap kelipatan 8 pemain.
+        dengan skill aktif malam, Raja, dan Badut tidak. Werewolf bertambah 1 setiap kelipatan 8
+        pemain.
       </Subtitle>
 
       <Input

@@ -283,7 +283,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Helper: bangun deck role (duplikat diperbolehkan kecuali role aktif malam)
+-- Helper: bangun deck role (duplikat diperbolehkan kecuali role khusus)
 -- ---------------------------------------------------------------------------
 
 create or replace function public._build_role_deck(p_count int, p_active text[])
@@ -308,17 +308,18 @@ begin
   v_wolves := least(1 + (p_count / 8), p_count);
   v_deck := array_fill('Werewolf'::text, array[v_wolves]);
 
-  -- Role dengan skill aktif malam hanya boleh muncul sekali.
+  -- Role dengan skill aktif malam dan role khusus (Orphan, Doppelganger, King,
+  -- Fool) hanya boleh muncul sekali.
   select coalesce(array_agg(name order by random()), '{}') into v_unique
     from public.roles
     where is_active
-      and (category = 'active' or name in ('Orphan', 'Doppelganger'));
+      and (category = 'active' or name in ('Orphan', 'Doppelganger', 'King', 'Fool'));
 
   select coalesce(array_agg(name order by random()), '{}') into v_active_uniq
     from public.roles
     where is_active
       and name = any(coalesce(p_active, '{}'))
-      and (category = 'active' or name in ('Orphan', 'Doppelganger'));
+      and (category = 'active' or name in ('Orphan', 'Doppelganger', 'King', 'Fool'));
 
   select coalesce(array_agg(name order by random()), '{}') into v_other_unq
     from unnest(v_unique) as u(name)
@@ -340,7 +341,7 @@ begin
     from public.roles
     where is_active
       and name <> 'Werewolf'
-      and not (category = 'active' or name in ('Orphan', 'Doppelganger'));
+      and not (category = 'active' or name in ('Orphan', 'Doppelganger', 'King', 'Fool'));
 
   while cardinality(v_deck) < p_count loop
     if cardinality(v_fillers) = 0 then

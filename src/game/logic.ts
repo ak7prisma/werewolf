@@ -18,11 +18,18 @@ export function werewolfCount(totalPlayers: number): number {
 }
 
 /**
- * Roles with an active night skill may only appear once. Werewolf is duplicated
- * by design, while other roles (Hunter, King, Fool, etc.) may repeat.
+ * Roles with an active night skill and special roles (Orphan, Doppelganger,
+ * King, Fool) may only appear once. Werewolf is duplicated by design, while
+ * other roles (Hunter, etc.) may repeat.
  */
 export function isUniqueRole(role: string): boolean {
-  return role === 'Orphan' || role === 'Doppelganger' || getRole(role)?.category === 'active';
+  return (
+    role === 'Orphan' ||
+    role === 'Doppelganger' ||
+    role === 'King' ||
+    role === 'Fool' ||
+    getRole(role)?.category === 'active'
+  );
 }
 
 /** Pick the single-copy roles that fit in the non-werewolf portion of the deck. */
